@@ -6,14 +6,21 @@ from minecraft_client import MinecraftClient
 from prompt import create_prompt
 from tool_registry import ToolRegistry
 from tools.common.done import DoneTool
-from tools.minecraft.move_forward import MoveForwardTool
-from tools.minecraft.observe import ObserveTool
-from tools.minecraft.say import SayTool
+from tools.minecraft import (
+    MoveForwardTool,
+    ObserveTool,
+    SayTool,
+    TurnLeftTool,
+    TurnRightTool,
+)
+
 
 registry = ToolRegistry([
     DoneTool(),
     SayTool(),
     MoveForwardTool(),
+    TurnRightTool(),
+    TurnLeftTool(),
 ])
 
 
