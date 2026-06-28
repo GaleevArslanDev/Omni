@@ -1,25 +1,27 @@
-﻿from openai import OpenAI
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama"
-)
-
+﻿import ollama
 
 def call_llm(prompt: str) -> str:
-    response = client.chat.completions.create(
+    response = ollama.chat(
         model="qwen3:8b",
         messages=[
             {
                 "role": "system",
-                "content": "Ты отвечаешь только валидным JSON без markdown."
+                "content": (
+                    "Ты управляешь Minecraft-агентом. "
+                    "Верни только один JSON-объект. "
+                    "Без markdown. Без объяснений."
+                )
             },
             {
                 "role": "user",
                 "content": prompt
             },
         ],
-        temperature=0.2,
+        options={
+            "temperature": 0,
+            "num_predict": 1000,
+        },
+        think=False,
     )
 
-    return response.choices[0].message.content
+    return response["message"]["content"] or ""

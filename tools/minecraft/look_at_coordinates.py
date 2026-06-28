@@ -11,7 +11,15 @@ class LookAtCoordinatesTool(Tool):
         "z": "float - координата z"
     }
 
-    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, None]:
+    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, dict]:
         x, y, z = arguments["x"], arguments["y"], arguments["z"]
-        res = client.look_at_coords(x, y, z)
-        return res, None
+
+        before = client.observe()["vision"]["block_at_cursor"]
+        success = client.look_at_coords(x, y, z)
+        after = client.observe()["vision"]["block_at_cursor"]
+
+        return success, {
+            "looked_at": {"x": x, "y": y, "z": z},
+            "block_at_cursor_before": before,
+            "block_at_cursor_after": after,
+        }

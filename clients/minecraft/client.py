@@ -2,6 +2,7 @@
 
 from client_interface import ClientInterface
 from clients.minecraft.chat import ChatMixin
+from clients.minecraft.interaction import InteractionMixin
 from clients.minecraft.movement import MovementMixin
 from clients.minecraft.observation import ObservationMixin
 from clients.minecraft.rotation import RotationMixin
@@ -14,6 +15,7 @@ class MinecraftClient(
     MovementMixin,
     RotationMixin,
     ChatMixin,
+    InteractionMixin,
     ClientInterface,
 ):
     def __init__(self, name="Omni", host="localhost", port=3000, version="1.20.1", hide_errors=False):

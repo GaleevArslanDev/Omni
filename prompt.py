@@ -12,7 +12,7 @@ def create_prompt(goal: str, observations: dict, actions: list[ActionEntry], mem
 Текущее наблюдение:
 {observations}
 
-Журнал предыдущих действий:
+SYSTEM_ACTION_LOG:
 {"\n".join(f"- {entry.to_json()}" for entry in actions) if actions else "История пока пуста."}
 
 Память:
@@ -46,6 +46,10 @@ done()
 
 Не используй done, пока цель пользователя не выполнена полностью.
 Если цель состоит из нескольких частей, проверь, что каждая часть уже выполнена в SYSTEM_ACTION_LOG.
+
+SYSTEM_ACTION_LOG — достоверный журнал действий.
+Память — это заметки модели, они могут быть неточными.
+Если память противоречит SYSTEM_ACTION_LOG или наблюдению, верь SYSTEM_ACTION_LOG и наблюдению.
 
 В ответе напиши ТОЛЬКО JSON без markdown и комментариев.
 """.strip()

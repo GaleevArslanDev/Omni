@@ -6,10 +6,18 @@ class MoveForwardTool(Tool):
     name = "move_forward"
     description = "Двигаться вперед secs секунд."
     args_schema = {
-        "secs": "int - длительность движения в секундах"
+        "secs": "float - длительность движения в секундах"
     }
 
-    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, None]:
+    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, dict]:
         secs = arguments["secs"]
+
+        before = client.observe()["position"]
         client.set_control_state_for("forward", secs)
-        return True, None
+        after = client.observe()["position"]
+
+        return True, {
+            "old_position": before,
+            "new_position": after,
+            "secs": secs,
+        }

@@ -6,10 +6,18 @@ class TurnRightTool(Tool):
     name = "turn_right"
     description = "Повернуться вправо на deg градусов."
     args_schema = {
-        "deg": "int - на сколько градусов надо повернуться"
+        "deg": "float - на сколько градусов надо повернуться"
     }
 
-    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, None]:
+    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, dict]:
         deg = arguments["deg"]
-        client.turn_by_degrees(deg)
-        return True, None
+
+        before = client.observe()["rotation"]
+        success = client.turn_by_degrees(deg)
+        after = client.observe()["rotation"]
+
+        return success, {
+            "old_rotation": before,
+            "new_rotation": after,
+            "deg": deg,
+        }
