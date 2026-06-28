@@ -1,64 +1,53 @@
 ﻿import json
 
+import logger
+from action import ActionEntry
 from client_interface import ClientInterface
 from llm import call_llm
-from minecraft_client import MinecraftClient
+from clients.minecraft.client import MinecraftClient
+from memory import MemoryEntry
 from prompt import create_prompt
 from tool_registry import ToolRegistry
-from tools.common.done import DoneTool
-from tools.minecraft import *
+from tools_loader import load_tools
+
+registry = ToolRegistry(load_tools())
 
 
-registry = ToolRegistry([
-    DoneTool(),
-    SayTool(),
-    MoveForwardTool(),
-    TurnRightTool(),
-    TurnLeftTool(),
-    LookAtCoordinatesTool(),
-])
-
-
-def call_llm_json(prompt: str) -> dict:
-    can_exit = False
-    while not can_exit:
+def safe_call_llm_json(prompt: str) -> dict:
+    for _ in range(5):
         raw_answer = call_llm(prompt)
         try:
             answer = json.loads(raw_answer)
-            can_exit = True
+            return answer
         except Exception as e:
-            print("Error just happened, trying to repeat the request to LLM:", e)
+            logger.log_error(e)
+            logger.log_message("Trying again...")
 
-    return answer
-
-
-def make_history_entry(answer: dict, success: bool, res: str | int | float | None) -> str:
-    h = (
-        f"ACTION_DONE: {answer['tool_use']['name']} "
-        f"ARGS: {json.dumps(answer['tool_use']['arguments'], ensure_ascii=False)} "
-        f"SUCCESS: {success} "
-        f"RESULT: {res}"
-        f"MESSAGE: {answer["history"]}"
-    )
-    return h
+    logger.log_error(ValueError("Tried to call LLM JSON 5 times but failed"))
+    raise ValueError("Tried to call LLM JSON 5 times but failed")
 
 
 def run_agent_loop(client: ClientInterface, goal: str) -> None:
-    history = ["Сейчас еще нет плана."]
+    action_log = []
+    memory_log = []
 
-    last_tool = None
+    #last_tool = None
+
+    step = 0
 
     while True:
+        step += 1
         observations = client.observe()
         print(observations)
         prompt = create_prompt(
             goal=goal,
             observations=observations,
-            history=history,
-            tools_description=registry.describe()
+            actions=action_log,
+            memory=memory_log,
+            tools_description=registry.describe(),
         )
 
-        answer = call_llm_json(prompt)
+        answer = safe_call_llm_json(prompt)
         tools_use = answer["tool_use"]
 
         if tools_use["name"] == "done":
@@ -67,7 +56,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
                 client.stop()
             break
 
-        tool_key = json.dumps(tools_use, ensure_ascii=False, sort_keys=True)
+        # tool_key = json.dumps(tools_use, ensure_ascii=False, sort_keys=True)
 
         print(answer)
         print(answer["user_answer"])
@@ -83,8 +72,22 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
         # last_tool = tool_key
 
         success, res = registry.use(client, tools_use)
-        history.append(make_history_entry(answer, success, res))
+        action_log.append(
+            ActionEntry(
+                step=step,
+                tool=tools_use["name"],
+                arguments=tools_use["arguments"],
+                success=success,
+                result=res,
+            )
+        )
 
+        memory_log.append(
+            MemoryEntry(
+                step=step,
+                text=answer["history"],
+            )
+        )
 
 
 if __name__ == "__main__":

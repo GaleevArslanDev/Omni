@@ -1,4 +1,8 @@
-﻿def create_prompt(goal: str, observations: dict, history: list[str], tools_description: str) -> str:
+﻿from action import ActionEntry
+from memory import MemoryEntry
+
+
+def create_prompt(goal: str, observations: dict, actions: list[ActionEntry], memory: list[MemoryEntry], tools_description: str) -> str:
     return f"""
 Ты — агент Omni, который живёт в Minecraft.
 
@@ -8,8 +12,11 @@
 Текущее наблюдение:
 {observations}
 
-Твои заметки из прошлого:
-{chr(10).join(f"- {h}" for h in history)}
+Журнал предыдущих действий:
+{"\n".join(f"- {entry.to_json()}" for entry in actions) if actions else "История пока пуста."}
+
+Память:
+{"\n".join(f"- {entry.to_json()}" for entry in memory) if memory else "Память пока пуста."}
 
 Твои инструменты:
 {tools_description}
@@ -23,7 +30,7 @@
     "name": "название инструмента",
     "arguments": {{}}
   }},
-  "history": "краткая заметка для себя будущего"
+  "history": "короткий текст для сохранения в память"
 }}
 
 Если цель достигнута, используй инструмент:

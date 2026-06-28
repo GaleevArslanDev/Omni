@@ -1,5 +1,6 @@
 ﻿from typing import Any
 
+import logger
 from client_interface import ClientInterface
 from tool import Tool
 
@@ -19,6 +20,7 @@ class ToolRegistry:
         try:
             return tool.use(client, arguments)
         except Exception as e:
+            logger.log_error(e)
             return False, f"Tool error: {e}"
 
     def describe(self) -> str:

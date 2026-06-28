@@ -1,5 +1,6 @@
-﻿from minecraft_client import MinecraftClient
+﻿from clients.minecraft.client import MinecraftClient
 from tool import Tool
+
 
 class LookAtCoordinatesTool(Tool):
     name = "look_at_coordinates"

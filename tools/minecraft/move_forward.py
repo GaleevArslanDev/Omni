@@ -1,5 +1,6 @@
-﻿from minecraft_client import MinecraftClient
+﻿from clients.minecraft.client import MinecraftClient
 from tool import Tool
+
 
 class MoveForwardTool(Tool):
     name = "move_forward"
@@ -8,7 +9,7 @@ class MoveForwardTool(Tool):
         "secs": "int - длительность движения в секундах"
     }
 
-    def use(self, client: MinecraftClient, arguments) -> tuple[bool, None]:
+    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, None]:
         secs = arguments["secs"]
         client.set_control_state_for("forward", secs)
         return True, None

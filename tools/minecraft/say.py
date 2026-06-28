@@ -1,4 +1,6 @@
-﻿from tool import Tool
+﻿from clients.minecraft.client import MinecraftClient
+from tool import Tool
+
 
 class SayTool(Tool):
     name = "say"
@@ -7,7 +9,7 @@ class SayTool(Tool):
         "text": "string - текст сообщения"
     }
 
-    def use(self, client, arguments) -> tuple[bool, None]:
+    def use(self, client: MinecraftClient, arguments: dict) -> tuple[bool, None]:
         text = arguments["text"]
         client.say(text)
         return True, None

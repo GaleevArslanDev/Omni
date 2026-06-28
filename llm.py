@@ -5,6 +5,7 @@ client = OpenAI(
     api_key="ollama"
 )
 
+
 def call_llm(prompt: str) -> str:
     response = client.chat.completions.create(
         model="qwen3:8b",
