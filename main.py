@@ -6,13 +6,7 @@ from minecraft_client import MinecraftClient
 from prompt import create_prompt
 from tool_registry import ToolRegistry
 from tools.common.done import DoneTool
-from tools.minecraft import (
-    MoveForwardTool,
-    ObserveTool,
-    SayTool,
-    TurnLeftTool,
-    TurnRightTool,
-)
+from tools.minecraft import *
 
 
 registry = ToolRegistry([
@@ -21,6 +15,7 @@ registry = ToolRegistry([
     MoveForwardTool(),
     TurnRightTool(),
     TurnLeftTool(),
+    LookAtCoordinatesTool(),
 ])
 
 
@@ -55,6 +50,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
 
     while True:
         observations = client.observe()
+        print(observations)
         prompt = create_prompt(
             goal=goal,
             observations=observations,
@@ -76,15 +72,15 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
         print(answer)
         print(answer["user_answer"])
 
-        if tool_key == last_tool:
-            history.append(
-                "SYSTEM: Ты только что повторил то же самое действие. "
-                "Если цель уже выполнена, используй done."
-            )
-            print("Повтор действия")
-            continue
-
-        last_tool = tool_key
+        # if tool_key == last_tool:
+        #     history.append(
+        #         "SYSTEM: Ты только что повторил то же самое действие. "
+        #         "Если цель уже выполнена, используй done."
+        #     )
+        #     print("Повтор действия")
+        #     continue
+        #
+        # last_tool = tool_key
 
         success, res = registry.use(client, tools_use)
         history.append(make_history_entry(answer, success, res))
