@@ -89,3 +89,4 @@ Thumbs.db
 log.txt
 *.exe
 world_state.json
+/notes

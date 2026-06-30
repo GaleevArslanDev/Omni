@@ -75,13 +75,15 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
 
     planned_mode = len(task_plan.steps) > 0
 
+    max_steps = 20
+
     print("Started with planned mode:", planned_mode)
 
     #last_tool = None
 
     step = 0
 
-    while True:
+    while step < max_steps:
         step += 1
 
         observations = client.observe()
@@ -93,8 +95,8 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
         print("TASK_PLAN:", task_plan.to_json())
         print("TASK_PROGRESS:", task_progress.to_json())
 
-        if planned_mode and task_progress.is_done():
-            print("[TASK_DONE]", task_progress.to_json())
+        if planned_mode and task_progress.is_terminal():
+            logger.log_message("[TASK_TERMINAL]" + str(task_progress.to_json()))
             if callable(getattr(client, "stop", None)):
                 client.stop()
             break
@@ -114,7 +116,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
         tools_use = answer["tool_use"]
 
         if tools_use["name"] == "done":
-            print(answer["user_answer"])
+            logger.log_message("[TASK_TERMINAL] LLM finished execution with done tool")
             if callable(getattr(client, "stop", None)):
                 client.stop()
             break
@@ -158,6 +160,9 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
                 text=answer["history"],
             )
         )
+    logger.log_warning("Terminated because of the timeout")
+    if callable(getattr(client, "stop", None)):
+        client.stop()
 
 
 if __name__ == "__main__":
