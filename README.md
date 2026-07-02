@@ -17,10 +17,12 @@ The project combines:
 On each step, the agent execution loop:
 1. Observes the world coordinates and environment around it.
 2. Updates the internal `WorldState` and evaluates `TaskProgress`.
-3. Constructs a contextual prompt for the Local LLM.
+3. Constructs a contextual prompt for the Local LLM using observation, action history, `WorldState`, `TaskPlan`, and `TaskProgress`.
 4. Receives exactly one tool call response formatted in JSON.
 5. Executes the selected tool via the registry.
-6. Records the result and continues until the objective is met or the step limit is reached.
+6. Captures post-action observation and computes `observation_diff`.
+7. Updates `WorldState` and `TaskProgress` from tool results and action history.
+8. Continues until the objective becomes terminal or the step limit is reached.
 
 The current toolset allows the agent to handle tasks such as:
 - Moving forward for a fixed duration.
@@ -29,6 +31,9 @@ The current toolset allows the agent to handle tasks such as:
 - Broadcasting text updates in the game chat.
 - Mining the specific block currently under the crosshair.
 - Tracking and recalling object locations for multi-step goals.
+- Verifying target alignment before digging.
+- Enforcing expected-block digging and deterministic failure on target mismatch.
+- Reporting observed world changes after successful object interaction.
 
 ## Architecture & Project Structure
 
@@ -51,7 +56,8 @@ The current toolset allows the agent to handle tasks such as:
 
 ## Core Milestones (Version History)
 
-- **`v0.5.0` (Current)**: Transitioned task logic to a strict algorithmic layer, isolating execution tracking from LLM hallucination.
+- **`v0.6.0` (Current)**: Hardened object interaction with explicit target flow, look-at verification, expected-block digging, deterministic reporting, and stricter controller termination.
+- **`v0.5.0`**: Transitioned task logic to a strict algorithmic layer, isolating execution tracking from LLM hallucination.
 - **`v0.4.0`**: Introduced the `WorldState` persistence memory layer and offloaded delta observation tracking away from the LLM context.
 - **`v0.3.0`**: Implemented core environment interaction via the `digging` tool registry.
 - **`v0.2.0`**: Added spatial block-scanning capabilities and surrounding world perception.
@@ -80,7 +86,7 @@ npm install mineflayer
 ### 2. Fetch the Local LLM
 Ensure your local Ollama instance is active and download the model specified in `llm.py`:
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen3:8b
 ```
 
 ### 3. Server Configuration
@@ -103,16 +109,20 @@ Type your goal directly into the console prompt when requested.
 **Example Prompts:**
 - *“Move forward for 3 seconds”*
 - *“Remember the chest, move forward for 2 seconds, and tell me where the chest was”*
+- *“Turn to the oak_log, break it, and say what changed”*
 
 ## Current Development Notes
 
 - **Language Stance**: Some core prompt configurations and internal planner evaluation text are written in Russian, though the execution runtime layer remains completely language-agnostic.
 - **Observation Flow**: The standalone `observe` tool class is temporarily disabled; environment data extraction is handled natively by the core loop orchestration.
-- **Step Limit**: To prevent runaway API costs or infinite loops, the agent is hardcoded to forcefully terminate after 20 sequential tool steps.
+- **Task Planning Scope**: `TaskPlan` is intentionally narrow. It supports a small set of deterministic templates rather than acting as a general planner.
+- **Interaction Semantics**: `remember_object_location` means "remember the nearest observed object of the requested type", not every object of that type.
+- **Step Limit**: To prevent runaway API costs or infinite loops, the agent is hardcoded to terminate after 20 sequential tool steps.
 
 ## Limitations & Next Steps
 
 - Missing dependency lockfiles (`requirements.txt`, `package.json`).
 - Absence of automated testing suites.
-- The deterministic planner currently accommodates a restricted set of sequence patterns.
+- The deterministic planner currently accommodates only a restricted set of sequence patterns.
+- `report_observation_diff` still relies on LLM wording constrained by prompt rules rather than a fully structured reporting tool.
 - Connection configurations are static and hardcoded within source files.
