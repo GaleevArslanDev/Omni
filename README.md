@@ -80,7 +80,7 @@ The current toolset allows the agent to handle tasks such as:
 Install the required Python packages and the Node bridge:
 ```bash
 pip install ollama javascript
-npm install mineflayer
+npm install mineflayer prismarine-viewer canvas node-canvas-webgl
 ```
 
 ### 2. Fetch the Local LLM

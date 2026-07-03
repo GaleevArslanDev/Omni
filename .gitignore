@@ -91,3 +91,7 @@ log.txt
 world_state.json
 /notes
 /manual_tests
+/node_modules
+package-lock.json
+package.json
+*.log

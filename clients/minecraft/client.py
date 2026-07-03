@@ -2,6 +2,7 @@
 
 from client_interface import ClientInterface
 from clients.minecraft.chat import ChatMixin
+from clients.minecraft.debug import DebugMixin
 from clients.minecraft.interaction import InteractionMixin
 from clients.minecraft.movement import MovementMixin
 from clients.minecraft.observation import ObservationMixin
@@ -16,10 +17,38 @@ class MinecraftClient(
     RotationMixin,
     ChatMixin,
     InteractionMixin,
+    DebugMixin,
     ClientInterface,
 ):
-    def __init__(self, name="Omni", host="localhost", port=3000, version="1.20.1", hide_errors=False):
-        self.bot_params = {"username": name, "host": host, "port": port, "version": version, "hideErrors": hide_errors}
+    def __init__(
+        self,
+        name="Omni",
+        host="localhost",
+        port=3000,
+        version=None,
+        hide_errors=False,
+        debug_stream_host="127.0.0.1",
+        debug_stream_port=8089,
+        debug_stream_width=640,
+        debug_stream_height=360,
+        enable_debug_stream=True,
+    ):
+        self.bot_params = {
+            "username": name,
+            "host": host,
+            "port": port,
+            "hideErrors": hide_errors,
+        }
+        if version:
+            self.bot_params["version"] = version
+        if enable_debug_stream:
+            self.init_debug_stream(
+                host=debug_stream_host,
+                port=debug_stream_port,
+                width=debug_stream_width,
+                height=debug_stream_height,
+                frames=-1,
+            )
         self.bot = None
         self._start_bot()
 
@@ -43,7 +72,12 @@ class MinecraftClient(
             #     message_no_tag = message
             pass
 
+        @On(self.bot, "spawn")
+        def spawn(*args):
+            self.start_debug_stream()
+
     def stop(self):
+        self.stop_debug_stream()
         if self.bot:
             self.bot.quit()  # Отключаем бота от сервера Minecraft
         terminate()
