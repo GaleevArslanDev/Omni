@@ -2,6 +2,7 @@
 
 import logger
 from action import ActionEntry
+from agent_state import AgentState
 from client_interface import ClientInterface
 from llm import call_llm
 from clients.minecraft.client import MinecraftClient
@@ -69,6 +70,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
     memory_log = []
 
     world_state = WorldState()
+    agent_state = AgentState()
 
     task_plan = parse_task_plan(goal)
     task_progress = TaskProgress(task_plan)
@@ -91,6 +93,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
         observations = client.observe()
 
         world_state.update_from_observation(observations, step)
+        agent_state.update_from_observation(observations, step)
         task_progress.update_from_observation(observations, step)
 
         print(observations)
@@ -110,6 +113,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
             actions=action_log,
             memory=memory_log,
             world_state=world_state,
+            agent_state=agent_state,
             task_plan=task_plan,
             task_progress=task_progress,
             tools_description=registry.describe(),

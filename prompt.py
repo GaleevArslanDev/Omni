@@ -1,4 +1,5 @@
 ﻿from action import ActionEntry
+from agent_state import AgentState
 from memory import MemoryEntry
 from task_plan import TaskPlan
 from task_progress import TaskProgress
@@ -11,6 +12,7 @@ def create_prompt(
     actions: list[ActionEntry],
     memory: list[MemoryEntry],
     world_state: WorldState,
+    agent_state: AgentState,
     task_plan: TaskPlan,
     task_progress: TaskProgress,
     tools_description: str
@@ -33,6 +35,13 @@ World State:
 World State — это долговременное состояние известных объектов.
 Если объект отсутствует в текущем наблюдении, но есть в World State со статусом observed, значит агент видел его раньше, но сейчас не наблюдает.
 Если объект имеет status="removed", значит он был удалён/сломался.
+
+Agent State:
+{agent_state.to_json()}
+
+Если вопрос касается здоровья, сытости, предметов агента, выбранного слота или предмета в руке, опирайся на Agent State.
+Если предмет отсутствует в inventory_summary и не находится в main_hand, не утверждай, что он есть.
+Не выдумывай предметы, количество предметов или выбранный слот.
 
 Task Plan:
 {task_plan.to_json()}
