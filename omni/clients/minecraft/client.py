@@ -1,4 +1,4 @@
-﻿from javascript import terminate, On, require
+from javascript import On, require, terminate
 
 from omni.clients.interface import ClientInterface
 from omni.clients.minecraft.chat import ChatMixin
@@ -7,6 +7,19 @@ from omni.clients.minecraft.interaction import InteractionMixin
 from omni.clients.minecraft.movement import MovementMixin
 from omni.clients.minecraft.observation import ObservationMixin
 from omni.clients.minecraft.rotation import RotationMixin
+from omni.config import (
+    DEBUG_STREAM_ENABLED,
+    DEBUG_STREAM_FRAMES,
+    DEBUG_STREAM_HEIGHT,
+    DEBUG_STREAM_HOST,
+    DEBUG_STREAM_PORT,
+    DEBUG_STREAM_WIDTH,
+    MINECRAFT_HIDE_ERRORS,
+    MINECRAFT_HOST,
+    MINECRAFT_PORT,
+    MINECRAFT_USERNAME,
+    MINECRAFT_VERSION,
+)
 
 mineflayer = require("mineflayer")
 
@@ -22,16 +35,16 @@ class MinecraftClient(
 ):
     def __init__(
         self,
-        name="Omni",
-        host="localhost",
-        port=3000,
-        version=None,
-        hide_errors=False,
-        debug_stream_host="127.0.0.1",
-        debug_stream_port=8089,
-        debug_stream_width=640,
-        debug_stream_height=360,
-        enable_debug_stream=True,
+        name: str = MINECRAFT_USERNAME,
+        host: str = MINECRAFT_HOST,
+        port: int = MINECRAFT_PORT,
+        version: str | None = MINECRAFT_VERSION,
+        hide_errors: bool = MINECRAFT_HIDE_ERRORS,
+        debug_stream_host: str = DEBUG_STREAM_HOST,
+        debug_stream_port: int = DEBUG_STREAM_PORT,
+        debug_stream_width: int = DEBUG_STREAM_WIDTH,
+        debug_stream_height: int = DEBUG_STREAM_HEIGHT,
+        enable_debug_stream: bool = DEBUG_STREAM_ENABLED,
     ):
         self.bot_params = {
             "username": name,
@@ -47,7 +60,7 @@ class MinecraftClient(
                 port=debug_stream_port,
                 width=debug_stream_width,
                 height=debug_stream_height,
-                frames=-1,
+                frames=DEBUG_STREAM_FRAMES,
             )
         self.bot = None
         self._start_bot()

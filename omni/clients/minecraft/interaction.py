@@ -1,7 +1,14 @@
-﻿import threading
+import threading
+
+from omni.config import DIG_BLOCK_MAX_DISTANCE, DIG_TIMEOUT_SECONDS
+
 
 class InteractionMixin:
-    def dig_block_at_cursor(self, max_distance: float = 4.5, expected_name: str | None = None) -> tuple[bool, dict]:
+    def dig_block_at_cursor(
+        self,
+        max_distance: float = DIG_BLOCK_MAX_DISTANCE,
+        expected_name: str | None = None,
+    ) -> tuple[bool, dict]:
         target_block = self.bot.blockAtCursor(max_distance)
 
         if target_block is None or target_block.name == "air":
@@ -52,7 +59,7 @@ class InteractionMixin:
             state["error"] = str(e)
             cleanup()
 
-        finished = done.wait(timeout=10)
+        finished = done.wait(timeout=DIG_TIMEOUT_SECONDS)
 
         if not finished:
             try:
@@ -73,4 +80,3 @@ class InteractionMixin:
             "block_at_cursor_after": after_cursor,
             "error": state["error"],
         }
-

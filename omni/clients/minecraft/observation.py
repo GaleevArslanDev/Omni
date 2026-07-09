@@ -1,10 +1,20 @@
-﻿import math
 import logging
-
+import math
 from collections import Counter
 from typing import Any
 
 from javascript import require
+
+from omni.config import (
+    BLOCK_AT_CURSOR_MAX_DISTANCE,
+    GROUND_BLOCK_MAX_PER_TYPE,
+    GROUND_BLOCK_NAMES,
+    GROUND_BLOCK_RADIUS,
+    MAX_NEARBY_OBJECTS,
+    OBSERVED_BLOCK_MAX_PER_TYPE,
+    OBSERVED_BLOCK_NAMES,
+    OBSERVED_BLOCK_RADIUS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,23 +24,18 @@ class ObservationMixin:
         pos = self.bot.entity.position
 
         objects = self.get_blocks_by_names(
-            names=[
-                "oak_log", "birch_log", "spruce_log",
-                "crafting_table", "chest", "furnace",
-                "coal_ore", "iron_ore",
-                "water", "lava",
-            ],
-            radius=12,
-            max_per_type=5,
+            names=list(OBSERVED_BLOCK_NAMES),
+            radius=OBSERVED_BLOCK_RADIUS,
+            max_per_type=OBSERVED_BLOCK_MAX_PER_TYPE,
         )
 
         ground = self.get_blocks_by_names(
-            names=["grass_block", "dirt", "stone", "sand"],
-            radius=4,
-            max_per_type=10,
+            names=list(GROUND_BLOCK_NAMES),
+            radius=GROUND_BLOCK_RADIUS,
+            max_per_type=GROUND_BLOCK_MAX_PER_TYPE,
         )
 
-        cursor_block = self.bot.blockAtCursor(8)
+        cursor_block = self.bot.blockAtCursor(BLOCK_AT_CURSOR_MAX_DISTANCE)
 
         inventory = self.get_inventory()
 
@@ -48,13 +53,18 @@ class ObservationMixin:
             "food": self.bot.food,
             "inventory": inventory,
             "vision": {
-                "nearby_objects": objects[:20],
+                "nearby_objects": objects[:MAX_NEARBY_OBJECTS],
                 "ground_summary": dict(Counter(block["name"] for block in ground)),
                 "block_at_cursor": self.serialize_block(cursor_block),
             }
         }
 
-    def get_blocks_by_names(self, names: list[str], radius: int = 8, max_per_type: int = 5) -> list[dict]:
+    def get_blocks_by_names(
+        self,
+        names: list[str],
+        radius: int = OBSERVED_BLOCK_RADIUS,
+        max_per_type: int = OBSERVED_BLOCK_MAX_PER_TYPE,
+    ) -> list[dict]:
         mc_data = require("minecraft-data")(self.bot.version)
         result = []
         bot_pos = self.bot.entity.position
@@ -65,7 +75,7 @@ class ObservationMixin:
             try:
                 block_data = blocks_by_name[name]
                 block_id = int(block_data.id)
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to resolve minecraft block data for %s", name)
                 continue
 

@@ -2,6 +2,14 @@ from pathlib import Path
 
 from javascript import require
 
+from omni.config import (
+    DEBUG_STREAM_FRAMES,
+    DEBUG_STREAM_HEIGHT,
+    DEBUG_STREAM_HOST,
+    DEBUG_STREAM_PORT,
+    DEBUG_STREAM_WIDTH,
+)
+
 _HELPER_PATH = str(
     Path(__file__).with_name("prismarine_headless.js").resolve()
 ).replace("\\", "/")
@@ -12,11 +20,11 @@ start_filtered_headless = require(_HELPER_PATH)
 class DebugMixin:
     def init_debug_stream(
         self,
-        host: str = "127.0.0.1",
-        port: int = 8089,
-        width: int = 640,
-        height: int = 360,
-        frames: int = -1,
+        host: str = DEBUG_STREAM_HOST,
+        port: int = DEBUG_STREAM_PORT,
+        width: int = DEBUG_STREAM_WIDTH,
+        height: int = DEBUG_STREAM_HEIGHT,
+        frames: int = DEBUG_STREAM_FRAMES,
     ) -> None:
         self._debug_stream_enabled = True
         self._debug_stream_host = host

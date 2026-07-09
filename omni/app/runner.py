@@ -3,6 +3,7 @@ from typing import Any
 
 from omni.app.observation_diff import diff_observations
 from omni.clients.interface import ClientInterface
+from omni.config import AGENT_MAX_STEPS
 from omni.llm.json_client import safe_call_llm_json
 from omni.planning.parsers import parse_task_plan
 from omni.planning.task_plan import TaskPlan
@@ -17,7 +18,6 @@ from omni.tools.registry import ToolRegistry
 
 registry = ToolRegistry(load_tools())
 logger = logging.getLogger(__name__)
-MAX_STEPS = 20
 
 
 def _create_run_state(goal: str) -> tuple[
@@ -180,7 +180,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
     step = 0
     terminated_normally = False
 
-    while step < MAX_STEPS:
+    while step < AGENT_MAX_STEPS:
         step += 1
 
         observations = _observe_and_update_state(

@@ -1,8 +1,11 @@
-﻿import ollama
+import ollama
+
+from omni.config import LLM_MODEL, LLM_NUM_PREDICT, LLM_TEMPERATURE
+
 
 def call_llm(prompt: str) -> str:
     response = ollama.chat(
-        model="qwen3:8b",
+        model=LLM_MODEL,
         messages=[
             {
                 "role": "system",
@@ -18,8 +21,8 @@ def call_llm(prompt: str) -> str:
             },
         ],
         options={
-            "temperature": 0,
-            "num_predict": 1000,
+            "temperature": LLM_TEMPERATURE,
+            "num_predict": LLM_NUM_PREDICT,
         },
         think=False,
     )
