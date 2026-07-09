@@ -117,24 +117,24 @@ def try_parse_agent_state_report(goal: str) -> TaskPlan | None:
     lower = goal.lower()
 
     asks_self_state = (
-        "Р·РґРѕСЂРѕРІ" in lower
+        "здоров" in lower
         or "health" in lower
         or "hp" in lower
-        or "СЃС‹С‚РѕСЃС‚" in lower
+        or "сытост" in lower
         or "food" in lower
-        or "РіРѕР»РѕРґ" in lower
-        or "РєРѕРѕСЂРґРёРЅР°С‚" in lower
-        or "РїРѕР·РёС†Рё" in lower
-        or "РіРґРµ С‚С‹" in lower
-        or "РїРѕРІРѕСЂРѕС‚" in lower
+        or "голод" in lower
+        or "координат" in lower
+        or "позици" in lower
+        or "где ты" in lower
+        or "поворот" in lower
         or "yaw" in lower
         or "pitch" in lower
-        or ("РІС‹Р±СЂР°РЅ" in lower and "СЃР»РѕС‚" in lower)
-        or "РІ СЂСѓРєРµ" in lower
-        or "РёРЅРІРµРЅС‚Р°СЂ" in lower
-        or "Сѓ С‚РµР±СЏ РµСЃС‚СЊ" in lower
-        or "РµСЃС‚СЊ Р»Рё Сѓ С‚РµР±СЏ" in lower
-        or "СЃРєРѕР»СЊРєРѕ Сѓ С‚РµР±СЏ" in lower
+        or ("выбран" in lower and "слот" in lower)
+        or "в руке" in lower
+        or "инвентар" in lower
+        or "у тебя есть" in lower
+        or "есть ли у тебя" in lower
+        or "сколько у тебя" in lower
     )
 
     if not asks_self_state:
@@ -161,34 +161,34 @@ def try_parse_agent_state_report(goal: str) -> TaskPlan | None:
             ],
         )
 
-    if "Р·РґРѕСЂРѕРІ" in lower or "health" in lower or "hp" in lower:
+    if "здоров" in lower or "health" in lower or "hp" in lower:
         return make_plan("report_health", "health")
 
-    if "СЃС‹С‚РѕСЃС‚" in lower or "food" in lower or "РіРѕР»РѕРґ" in lower:
+    if "сытост" in lower or "food" in lower or "голод" in lower:
         return make_plan("report_food", "food")
 
-    if "РіРґРµ С‚С‹" in lower or "РєРѕРѕСЂРґРёРЅР°С‚" in lower or "РїРѕР·РёС†Рё" in lower:
+    if "где ты" in lower or "координат" in lower or "позици" in lower:
         return make_plan("report_position", "position")
 
-    if "РїРѕРІРѕСЂРѕС‚" in lower or "yaw" in lower or "pitch" in lower:
+    if "поворот" in lower or "yaw" in lower or "pitch" in lower:
         return make_plan("report_rotation", "rotation")
 
-    if "РІ СЂСѓРєРµ" in lower:
+    if "в руке" in lower:
         return make_plan("report_main_hand", "main_hand")
 
-    if "РІС‹Р±СЂР°РЅ" in lower and "СЃР»РѕС‚" in lower:
+    if "выбран" in lower and "слот" in lower:
         return make_plan("report_selected_slot", "selected_slot")
 
-    if "С‡С‚Рѕ Сѓ С‚РµР±СЏ РІ РёРЅРІРµРЅС‚Р°СЂРµ" in lower or "С‡С‚Рѕ РІ РёРЅРІРµРЅС‚Р°СЂРµ" in lower:
+    if "что у тебя в инвентаре" in lower or "что в инвентаре" in lower:
         return make_plan("report_inventory_summary", "inventory_summary")
 
     item_name = resolve_object_name(goal)
 
     if item_name is not None:
-        if "СЃРєРѕР»СЊРєРѕ Сѓ С‚РµР±СЏ" in lower or ("СЃРєРѕР»СЊРєРѕ" in lower and "РІ РёРЅРІРµРЅС‚Р°СЂРµ" in lower):
+        if "сколько у тебя" in lower or ("сколько" in lower and "в инвентаре" in lower):
             return make_plan("report_inventory_count_item", "inventory_count_item", item_name)
 
-        if "Сѓ С‚РµР±СЏ РµСЃС‚СЊ" in lower or "РµСЃС‚СЊ Р»Рё Сѓ С‚РµР±СЏ" in lower:
+        if "у тебя есть" in lower or "есть ли у тебя" in lower:
             return make_plan("report_inventory_has_item", "inventory_has_item", item_name)
 
     return None
@@ -198,20 +198,20 @@ def parse_task_plan(goal: str) -> TaskPlan:
     """
     v0.7 parser.
 
-    Р­С‚Рѕ РќР• СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ РїР»Р°РЅРЅРµСЂ.
-    Р­С‚Рѕ РЅР°Р±РѕСЂ РјР°Р»РµРЅСЊРєРёС… РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹С… СЂР°СЃРїРѕР·РЅР°РІР°С‚РµР»РµР№ РёР·РІРµСЃС‚РЅС‹С… С€Р°Р±Р»РѕРЅРѕРІ.
+    Это НЕ универсальный планнер.
+    Это набор маленьких детерминированных распознавателей известных шаблонов.
 
-    РЎРµР№С‡Р°СЃ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ:
+    Сейчас поддерживаются:
 
     1. remember/move/report:
-       "Р—Р°РїРѕРјРЅРё chest, РїСЂРѕР№РґРё РІРїРµСЂС‘Рґ 3 СЃРµРєСѓРЅРґС‹, СЃРєР°Р¶Рё РіРґРµ Р±С‹Р» chest"
+       "Запомни chest, пройди вперёд 3 секунды, скажи где был chest"
 
     2. dig/report-diff:
-       "РџРѕРІРµСЂРЅРёСЃСЊ Рє oak_log, СЃР»РѕРјР°Р№ РµРіРѕ, СЃРєР°Р¶Рё С‡С‚Рѕ РёР·РјРµРЅРёР»РѕСЃСЊ"
+       "Повернись к oak_log, сломай его, скажи что изменилось"
 
-    РЎРјРµС€Р°РЅРЅС‹Рµ РєРѕРјР°РЅРґС‹ СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё СЂР°Р·РЅС‹РјРё С†РµР»СЏРјРё РїРѕРєР° Р»СѓС‡С€Рµ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°С‚СЊ.
-    Р•СЃР»Рё РїР°С‚С‚РµСЂРЅ РЅРµ СЂР°СЃРїРѕР·РЅР°РЅ, РІРѕР·РІСЂР°С‰Р°РµРј РїСѓСЃС‚РѕР№ РїР»Р°РЅ.
-    РўРѕРіРґР° LLM СЂР°Р±РѕС‚Р°РµС‚ РєР°Рє СЂР°РЅСЊС€Рµ.
+    Смешанные команды с несколькими разными целями пока лучше не поддерживать.
+    Если паттерн не распознан, возвращаем пустой план.
+    Тогда LLM работает как раньше.
     """
     parsers = [
         try_parse_agent_state_report,

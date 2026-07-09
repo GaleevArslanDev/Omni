@@ -3,31 +3,31 @@ import re
 
 OBJECT_ALIASES = {
     "chest": "chest",
-    "СЃСѓРЅРґСѓРє": "chest",
+    "сундук": "chest",
     "oak_log": "oak_log",
-    "РґСѓР±": "oak_log",
-    "РґСѓР±РѕРІРѕРµ Р±СЂРµРІРЅРѕ": "oak_log",
-    "РґСѓР±РѕРІС‹Р№ СЃС‚РІРѕР»": "oak_log",
+    "дуб": "oak_log",
+    "дубовое бревно": "oak_log",
+    "дубовый ствол": "oak_log",
     "birch_log": "birch_log",
-    "Р±РµСЂС‘Р·Р°": "birch_log",
-    "Р±РµСЂРµР·Р°": "birch_log",
-    "Р±РµСЂС‘Р·РѕРІРѕРµ Р±СЂРµРІРЅРѕ": "birch_log",
-    "Р±РµСЂРµР·РѕРІРѕРµ Р±СЂРµРІРЅРѕ": "birch_log",
+    "береза": "birch_log",
+    "берёза": "birch_log",
+    "березовое бревно": "birch_log",
+    "берёзовое бревно": "birch_log",
     "spruce_log": "spruce_log",
-    "РµР»СЊ": "spruce_log",
-    "РµР»РѕРІРѕРµ Р±СЂРµРІРЅРѕ": "spruce_log",
+    "ель": "spruce_log",
+    "еловое бревно": "spruce_log",
     "crafting_table": "crafting_table",
-    "РІРµСЂСЃС‚Р°Рє": "crafting_table",
+    "верстак": "crafting_table",
     "furnace": "furnace",
-    "РїРµС‡СЊ": "furnace",
+    "печь": "furnace",
 }
 
 
 def resolve_object_name(goal: str) -> str | None:
     lower = goal.lower()
 
-    # РЎРЅР°С‡Р°Р»Р° РґР»РёРЅРЅС‹Рµ Р°Р»РёР°СЃС‹, С‡С‚РѕР±С‹ "РґСѓР±РѕРІРѕРµ Р±СЂРµРІРЅРѕ"
-    # РїРѕР№РјР°Р»РѕСЃСЊ СЂР°РЅСЊС€Рµ, С‡РµРј РїСЂРѕСЃС‚Рѕ "РґСѓР±".
+    # Сначала длинные алиасы, чтобы "дубовое бревно"
+    # поймалось раньше, чем просто "дуб".
     for alias in sorted(OBJECT_ALIASES.keys(), key=len, reverse=True):
         if alias in lower:
             return OBJECT_ALIASES[alias]
@@ -38,7 +38,7 @@ def resolve_object_name(goal: str) -> str | None:
 def extract_seconds(goal: str, default: float = 3.0) -> float:
     lower = goal.lower()
 
-    match = re.search(r"(\d+(?:[.,]\d+)?)\s*(СЃРµРє|СЃРµРєСѓРЅРґ|seconds|second|s)", lower)
+    match = re.search(r"(\d+(?:[.,]\d+)?)\s*(сек|секунд|seconds|second|s)", lower)
     if not match:
         return default
 
@@ -50,9 +50,9 @@ def wants_remember(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "Р·Р°РїРѕРјРЅРё" in lower
-        or "Р·Р°РїРѕРјРЅРёС‚СЊ" in lower
-        or "РїРѕРјРЅРё" in lower
+        "запомни" in lower
+        or "запомнить" in lower
+        or "помни" in lower
     )
 
 
@@ -60,9 +60,9 @@ def wants_report(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "СЃРєР°Р¶Рё" in lower
-        or "СЃРѕРѕР±С‰Рё" in lower
-        or "РЅР°РїРёС€Рё" in lower
+        "скажи" in lower
+        or "сообщи" in lower
+        or "напиши" in lower
     )
 
 
@@ -70,10 +70,10 @@ def wants_move_forward(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "РІРїРµСЂС‘Рґ" in lower
-        or "РІРїРµСЂРµРґ" in lower
-        or "РїСЂРѕР№РґРё" in lower
-        or "РёРґРё" in lower
+        "вперёд" in lower
+        or "вперед" in lower
+        or "пройди" in lower
+        or "иди" in lower
     )
 
 
@@ -81,13 +81,13 @@ def wants_dig(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "СЃР»РѕРјР°Р№" in lower
-        or "СЃР»РѕРјР°С‚СЊ" in lower
-        or "РґРѕР±СѓРґСЊ" in lower
-        or "РґРѕР±С‹С‚СЊ" in lower
-        or "СЂР°Р·Р±РµР№" in lower
-        or "РІСЃРєРѕРїР°С‚СЊ" in lower
-        or "РІСЃРєРѕРїР°Р№" in lower
+        "сломай" in lower
+        or "сломать" in lower
+        or "добудь" in lower
+        or "добыть" in lower
+        or "разбей" in lower
+        or "вскопать" in lower
+        or "вскопай" in lower
     )
 
 
@@ -95,11 +95,11 @@ def wants_change_report(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "С‡С‚Рѕ РёР·РјРµРЅРёР»РѕСЃСЊ" in lower
-        or "РёР·РјРµРЅРёР»РѕСЃСЊ" in lower
-        or "СЃРєР°Р¶Рё" in lower
-        or "СЃРѕРѕР±С‰Рё" in lower
-        or "РЅР°РїРёС€Рё" in lower
+        "что изменилось" in lower
+        or "изменилось" in lower
+        or "скажи" in lower
+        or "сообщи" in lower
+        or "напиши" in lower
     )
 
 
@@ -107,10 +107,10 @@ def wants_inventory_question(goal: str) -> bool:
     lower = goal.lower()
 
     return (
-        "РёРЅРІРµРЅС‚Р°СЂ" in lower
-        or "РІ СЂСѓРєРµ" in lower
-        or ("Сѓ С‚РµР±СЏ РµСЃС‚СЊ" in lower)
-        or ("РµСЃС‚СЊ Р»Рё Сѓ С‚РµР±СЏ" in lower)
-        or ("СЃРєРѕР»СЊРєРѕ Сѓ С‚РµР±СЏ" in lower)
-        or ("РІС‹Р±СЂР°РЅ" in lower and "СЃР»РѕС‚" in lower)
+        "инвентар" in lower
+        or "в руке" in lower
+        or ("у тебя есть" in lower)
+        or ("есть ли у тебя" in lower)
+        or ("сколько у тебя" in lower)
+        or ("выбран" in lower and "слот" in lower)
     )
