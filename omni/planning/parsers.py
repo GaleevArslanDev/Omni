@@ -198,6 +198,36 @@ def try_parse_agent_state_report(goal: str) -> TaskPlan | None:
     return None
 
 
+def try_parse_select_item_if_present(goal: str) -> TaskPlan | None:
+    lower = goal.lower().replace("ё", "е")
+    target_name = resolve_object_name(goal)
+
+    if target_name is None:
+        return None
+
+    mentions_condition = (
+        "если" in lower
+        and ("если у тебя есть" in lower or "если у тебя нет" in lower or "если у тебя не" in lower)
+    )
+    mentions_hold_request = wants_select_item_in_hotbar(goal)
+
+    if not mentions_condition or not mentions_hold_request:
+        return None
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="select_item_if_present",
+                kind="select_item_in_hotbar_or_say_missing",
+                args={
+                    "target_item_name": target_name,
+                },
+            )
+        ],
+    )
+
+
 def try_parse_select_item_in_hotbar(goal: str) -> TaskPlan | None:
     if not wants_select_item_in_hotbar(goal):
         return None
@@ -278,6 +308,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
     parsers = [
         try_parse_agent_state_report,
         try_parse_select_hotbar_slot,
+        try_parse_select_item_if_present,
         try_parse_select_item_in_hotbar,
         try_parse_remember_move_report,
         try_parse_dig_object,

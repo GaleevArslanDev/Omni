@@ -8,7 +8,7 @@ The project currently combines:
 - A deterministic `TaskPlan` / `TaskProgress` layer for supported multi-step goals
 - A persistent `WorldState` for observed world objects
 - A separate `AgentState` for the agent's own state
-- A modular tool registry for movement, rotation, chat, targeting, digging, and self-state reporting
+- A modular tool registry for movement, rotation, chat, targeting, digging, self-state reporting, and basic hotbar control
 
 ## Ecosystem & Companion Apps
 
@@ -19,12 +19,13 @@ The project currently combines:
 On each step, the agent execution loop:
 1. Observes the environment and the agent's own state.
 2. Updates `WorldState`, `AgentState`, and `TaskProgress`.
-3. Builds a prompt from the current observation, action history, memory, `WorldState`, `AgentState`, `TaskPlan`, and `TaskProgress`.
-4. Receives exactly one JSON tool call from the local LLM.
-5. Executes that tool through the registry.
-6. Captures a post-action observation and computes `observation_diff`.
-7. Updates `WorldState` and `TaskProgress` from the action result and observed delta.
-8. Stops when the task becomes terminal, the LLM uses `done`, or the step limit is reached.
+3. Builds a prompt from the current observation, action history, memory, `WorldState`, and `AgentState`.
+4. If the current task step is deterministic, executes it directly from `TaskPlan` / `TaskProgress`.
+5. Otherwise receives exactly one JSON tool call from the local LLM.
+6. Executes the resulting tool through the registry.
+7. Captures a post-action observation and computes `observation_diff`.
+8. Updates `WorldState` and `TaskProgress` from the action result and observed delta.
+9. Stops when the task becomes terminal, the LLM uses `done`, or the step limit is reached.
 
 ## Architecture & Project Structure
 
@@ -50,12 +51,15 @@ On each step, the agent execution loop:
 
 ## Current State
 
-The repository is currently at `v0.7.0`.
+The repository is currently at `v0.8.0` development state.
 
 Main completed pieces:
 - `WorldState` stores observed world objects across steps
 - `AgentState` stores the agent's own position, rotation, health, food, selected slot, held item, and inventory snapshot
 - Minecraft observations include both `vision` and `inventory`
+- The agent can deterministically switch hotbar slots and select an item from hotbar by item name
+- Deterministic planned execution no longer lets the LLM rewrite `use_tool` task arguments
+- Remember/report and dig/report flows are now executed through a stronger deterministic controller path
 - Prompt rules explicitly separate:
   - what the agent sees in the world
   - what the agent has or holds
@@ -63,13 +67,14 @@ Main completed pieces:
 - The deterministic planner supports a small set of known multi-step patterns and self-state questions
 
 Still intentionally limited:
-- The agent can reason about inventory contents
-- The agent does not yet manage inventory actively: no slot switching, item transfer, chest handling, crafting, or equipment flow
+- Inventory interaction is currently limited to hotbar selection and holding an item already present in hotbar
+- There is still no item transfer between arbitrary slots, chest handling, crafting, armor flow, or offhand automation
 - The planner is deliberately narrow and is not meant to be a general-purpose planner yet
 
 ## Core Milestones
 
-- **`v0.7.0` (Current)**: Introduced the self-state layer through `AgentState`, extended observations with inventory data, and taught the agent to reason about itself separately from the world
+- **`v0.8.0` (Current)**: Turned inventory from passive knowledge into a first actionable layer through deterministic hotbar control and planned inventory execution
+- `v0.7.0`: Introduced the self-state layer through `AgentState`, extended observations with inventory data, and taught the agent to reason about itself separately from the world
 - `v0.6.0`: Hardened object interaction with explicit target flow, look-at verification, expected-block digging, deterministic reporting, and stricter controller termination
 - `v0.5.0`: Transitioned task logic to a strict algorithmic layer, isolating execution tracking from LLM hallucination
 - `v0.4.0`: Introduced the `WorldState` persistence memory layer and offloaded observation-difference tracking away from the LLM context
@@ -139,6 +144,9 @@ Example prompts:
 - `Move forward for 3 seconds`
 - `Remember the chest, move forward for 2 seconds, and tell me where the chest was`
 - `Turn to the oak_log, break it, and say what changed`
+- `Select slot 3`
+- `Hold green_wool`
+- `If you have green_wool, hold it`
 - `What do you have in your inventory?`
 - `How much health do you have?`
 
@@ -149,12 +157,13 @@ Example prompts:
 - Task planning scope: `TaskPlan` intentionally recognizes only a small set of deterministic patterns rather than acting as a general planner
 - Interaction semantics: `remember_object_location` means "remember the nearest observed object of the requested type", not every object of that type
 - Self-state semantics: `AgentState` is the source of truth for questions about the agent itself, including health, food, coordinates, held item, selected slot, and inventory contents
+- Inventory action scope: `v0.8.0` only covers hotbar-level control, not full inventory manipulation
 - Step limit: the agent stops after `AGENT_MAX_STEPS`, configured in `omni/config/settings.py`
 
 ## Limitations & Next Steps
 
 - No automated test suite yet
 - The deterministic planner currently supports only a restricted set of sequence patterns
-- `report_observation_diff` still relies on LLM wording constrained by prompt rules rather than a fully structured reporting tool
-- Inventory reasoning exists, but inventory control tools do not yet
+- Full inventory manipulation beyond hotbar selection still does not exist
+- Conditional inventory flows are intentionally narrow and only cover simple hotbar-dependent phrasing
 - Runtime settings still live in a Python settings module, not in environment variables or a dedicated external config file

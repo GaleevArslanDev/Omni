@@ -60,6 +60,10 @@ def update_progress_from_action(task_progress: "TaskProgress", action: ActionEnt
         _update_use_tool_step(task_progress, current, action)
         return
 
+    if current.kind == "select_item_in_hotbar_or_say_missing":
+        _update_select_item_or_report_missing_step(task_progress, current, action)
+        return
+
     if current.kind == "report_remembered_location":
         _update_report_step(task_progress, current, action)
         return
@@ -208,6 +212,48 @@ def _update_report_step(
         current.id,
         f"reported remembered location on step {action.step}: {action.arguments.get('text')}",
     )
+
+
+def _update_select_item_or_report_missing_step(
+    task_progress: "TaskProgress",
+    current: TaskStep,
+    action: ActionEntry,
+) -> None:
+    target_name = current.args["target_item_name"]
+
+    if not action.success:
+        task_progress.mark_failed(
+            current.id,
+            f"conditional select step failed on step {action.step}: {action.result}",
+        )
+        return
+
+    if action.tool == "select_item_in_hotbar":
+        selected_name = (action.result or {}).get("current_item_name")
+        if selected_name != target_name:
+            task_progress.mark_failed(
+                current.id,
+                (
+                    f"conditional select step equipped {selected_name!r} instead of "
+                    f"{target_name!r} on step {action.step}"
+                ),
+            )
+            return
+
+        task_progress.mark_done(
+            current.id,
+            f"equipped {target_name} from hotbar on step {action.step}",
+        )
+        return
+
+    if action.tool == "say":
+        text = action.arguments.get("text", "").lower()
+        if target_name.lower() in text:
+            task_progress.mark_done(
+                current.id,
+                f"reported missing {target_name} on step {action.step}",
+            )
+        return
 
 
 def _update_report_observation_diff_step(

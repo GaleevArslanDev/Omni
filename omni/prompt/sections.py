@@ -13,7 +13,7 @@ def _format_history(entries: list[ActionEntry] | list[MemoryEntry], empty_text: 
 
 
 def render_intro(goal: str, observations: dict) -> str:
-    return f"""Ты — агент Omni, который живёт в Minecraft.
+    return f"""Ты — агент Omni, который живет в Minecraft.
 
 Твоя цель:
 {goal}
@@ -32,9 +32,9 @@ def render_world_state(world_state: WorldState) -> str:
     return f"""World State:
 {world_state.to_json()}
 
-World State — это долговременное состояние известных объектов.
+World State — это долговременное состояние известных объектов мира.
 Если объект отсутствует в текущем наблюдении, но есть в World State со статусом observed, значит агент видел его раньше, но сейчас не наблюдает.
-Если объект имеет status="removed", значит он был удалён/сломался."""
+Если объект имеет status="removed", значит он был удален или сломан."""
 
 
 def render_agent_state(agent_state: AgentState) -> str:
@@ -79,11 +79,7 @@ World State и observation описывают мир вокруг агента, 
 "У меня есть X" — только если это подтверждается Agent State.inventory_summary или Agent State.main_hand.
 "Я держу X" — только если это подтверждается Agent State.main_hand.
 
-Не выдумывай предметы, количество предметов, выбранный слот, здоровье, сытость или координаты агента.
-
-Если вопрос касается здоровья, сытости, предметов агента, выбранного слота или предмета в руке, опирайся на Agent State.
-Если предмет отсутствует в inventory_summary и не находится в main_hand, не утверждай, что он есть.
-Не выдумывай предметы, количество предметов или выбранный слот."""
+Не выдумывай предметы, количество предметов, выбранный слот, здоровье, сытость или координаты агента."""
 
 
 def render_task_state(task_plan: TaskPlan, task_progress: TaskProgress) -> str:
@@ -103,28 +99,8 @@ Task Progress обновляется системой из наблюдений 
 Не повторяй шаги, которые уже завершены.
 Если Task Progress all_done=true, используй done.
 
-Правила для current_step:
-
-1. Если current_step.kind == "remember_object_location", значит объект target_name ещё не был найден в наблюдении.
-Скажи, что ты не наблюдаешь target_name рядом.
-
-2. Если current_step.kind == "report_remembered_location":
-   - Используй Task Progress remembered_objects.
-   - Скажи координаты remembered object.
-   - Не используй текущие координаты агента вместо координат объекта.
-   - Если remembered_objects не содержит target_name, скажи, что позиция объекта не была запомнена.
-
-3. Если current_step.kind == "report_observation_diff":
-    - Вызови ровно tool say.
-    - Не используй никакие инструменты, кроме say на этом шаге.
-    - Сообщи только то, что буквально подтверждается observation_diff.
-    - Нельзя утверждать, что один блок появился "на месте" другого, если это не доказано системой по тем же координатам.
-    - Безопасные формулировки:
-      * "{{target_name}} исчез из nearby_objects"
-      * "block_at_cursor теперь {{block_name}}"
-    - Избегай формулировок вида "на месте X теперь Y".
-
-Если current_step.kind не use_tool, не вызывай minecraft tool, не соответствующий типу шага"""
+Некоторые типы шагов в planned mode исполняются системой детерминированно.
+Модель не должна подменять для них tool или arguments."""
 
 
 def render_memory(memory: list[MemoryEntry]) -> str:
@@ -140,7 +116,16 @@ def render_tools(tools_description: str) -> str:
 Для выбора предмета по названию предпочитай select_item_in_hotbar.
 Не подменяй его связкой "сам найти предмет в inventory/hotbar -> самому вычислить слот -> вызвать select_hotbar_slot".
 
-Ты должен выбрать ровно один инструмент за шаг."""
+Используй select_hotbar_slot только если нужен точный номер слота 0..8.
+Если нужен предмет, а не номер слота, используй select_item_in_hotbar.
+
+Не путай:
+- hotbar slot index: 0..8
+- raw inventory slot ids: 36..44
+
+Никогда не преобразуй raw slot ids в selected_slot самостоятельно.
+
+Ты должен выбрать ровно один инструмент за шаг, если система не исполняет текущий шаг детерминированно сама."""
 
 
 def render_response_format() -> str:
@@ -165,7 +150,7 @@ done()
 Не повторяй один и тот же инструмент с теми же аргументами, если он уже успешно сработал.
 
 Не делай предположений о мире, если этого нет в наблюдении.
-Если информации нет, скажи: "я этого не наблюдаю".
+Если информации нет, скажи: "Я этого не наблюдаю".
 
 Координаты всегда записывай как X=..., Y=..., Z=...
 
@@ -176,42 +161,16 @@ SYSTEM_ACTION_LOG — достоверный журнал действий.
 Память — это заметки модели, они могут быть неточными.
 Если память противоречит SYSTEM_ACTION_LOG или наблюдению, верь SYSTEM_ACTION_LOG и наблюдению.
 
-При описании изменений используй observation_diff
-
+При описании изменений используй observation_diff.
 Не говори "на месте X появился Y", если observation_diff не доказывает замену по тем же координатам.
 Для report_observation_diff предпочитай буквальные формулировки:
 - "X исчез из nearby_objects"
 - "block_at_cursor теперь Y"
 
 Если цель требует конкретный target_name, а этот target_name отсутствует в vision.nearby_objects и block_at_cursor, не пытайся поворачиваться наугад.
-
 Объект из цели нельзя заменять другим объектом.
-
 Если цель требует target_name, нельзя использовать другой блок вместо target_name.
-
 Никогда не вызывай dig_block_at_cursor с expected_name, отличным от объекта, указанного в цели.
-
-Если нужно выбрать предмет в hotbar по его названию, используй select_item_in_hotbar.
-
-Используй select_hotbar_slot только в одном из случаев:
-- пользователь явно назвал номер слота;
-- Task Plan или deterministic step уже дал точный номер слота;
-- нужно выбрать именно конкретный номер, а не предмет.
-
-Если в цели назван предмет, а не номер слота, не вычисляй номер слота самостоятельно по observation, Agent State или inventory.
-В таком случае нельзя вручную искать предмет в hotbar и потом вызывать select_hotbar_slot.
-Нужно сразу вызывать select_item_in_hotbar.
-
-Не путай:
-- hotbar slot index: 0..8
-- raw inventory slot ids: 36..44
-
-Никогда не преобразуй raw slot ids в selected_slot самостоятельно.
-Если нужен предмет, используй select_item_in_hotbar.
-Если нужен точный номер 0..8, используй select_hotbar_slot.
-
-Если remembered_objects содержит target_name, сообщай это как ближайший запомненный объект этого типа.
-Если в наблюдении было несколько объектов одного типа, не утверждай, что это были все такие объекты.
 
 Если пользователь спрашивает о мире вокруг, отвечай по observation и World State.
 Если пользователь спрашивает о самом агенте, отвечай по Agent State.

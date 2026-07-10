@@ -170,9 +170,44 @@ def _build_report_observation_diff_text(
     return ". ".join(parts) + "."
 
 
+def _build_select_item_or_report_missing_answer(
+    current_step,
+    observations: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    if current_step.kind != "select_item_in_hotbar_or_say_missing":
+        return None
+
+    target_name = current_step.args["target_item_name"]
+    hotbar = observations.get("inventory", {}).get("hotbar", [])
+    has_item = any(item is not None and item.get("name") == target_name for item in hotbar)
+
+    if has_item:
+        answer = {
+            "user_answer": f"Беру {target_name} в руку из hotbar.",
+            "tool_use": {
+                "name": "select_item_in_hotbar",
+                "arguments": {"target_item_name": target_name},
+            },
+            "history": f"Deterministically selected {target_name} from hotbar.",
+        }
+        return answer, answer["tool_use"]
+
+    text = f"У меня нет {target_name} в hotbar."
+    answer = {
+        "user_answer": text,
+        "tool_use": {
+            "name": "say",
+            "arguments": {"text": text},
+        },
+        "history": text,
+    }
+    return answer, answer["tool_use"]
+
+
 def _planned_step_answer(
     task_progress: TaskProgress,
     action_log: list[ActionEntry],
+    observations: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     current_step = task_progress.current_step()
     if current_step is None:
@@ -183,12 +218,12 @@ def _planned_step_answer(
         arguments = current_step.args["arguments"]
 
         answer = {
-            "user_answer": f"Executing planned tool: {tool_name}",
+            "user_answer": f"Детерминированно выполняю шаг {tool_name}.",
             "tool_use": {
                 "name": tool_name,
                 "arguments": arguments,
             },
-            "history": f"Executed planned tool {tool_name} with deterministic arguments from Task Plan.",
+            "history": f"Deterministically executed planned tool {tool_name} with args={arguments}.",
         }
         return answer, answer["tool_use"]
 
@@ -221,6 +256,9 @@ def _planned_step_answer(
             "history": text,
         }
         return answer, answer["tool_use"]
+
+    if current_step.kind == "select_item_in_hotbar_or_say_missing":
+        return _build_select_item_or_report_missing_answer(current_step, observations)
 
     return None
 
@@ -299,7 +337,7 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
             terminated_normally = True
             break
 
-        planned_execution = _planned_step_answer(task_progress, action_log)
+        planned_execution = _planned_step_answer(task_progress, action_log, observations)
         if planned_execution is not None:
             answer, tools_use = planned_execution
             logger.info("Deterministic planned execution: %s", answer)
