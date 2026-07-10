@@ -1,7 +1,11 @@
 import re
 
+from pymorphy3 import MorphAnalyzer
 
-OBJECT_ALIASES = {
+
+MORPH = MorphAnalyzer()
+
+OBJECT_SURFACE_ALIASES = {
     "chest": "chest",
     "сундук": "chest",
     "oak_log": "oak_log",
@@ -10,9 +14,7 @@ OBJECT_ALIASES = {
     "дубовый ствол": "oak_log",
     "birch_log": "birch_log",
     "береза": "birch_log",
-    "берёза": "birch_log",
     "березовое бревно": "birch_log",
-    "берёзовое бревно": "birch_log",
     "spruce_log": "spruce_log",
     "ель": "spruce_log",
     "еловое бревно": "spruce_log",
@@ -20,17 +22,64 @@ OBJECT_ALIASES = {
     "верстак": "crafting_table",
     "furnace": "furnace",
     "печь": "furnace",
+    "печка": "furnace",
+    "green_wool": "green_wool",
+    "зеленая шерсть": "green_wool",
+    "red_wool": "red_wool",
+    "красная шерсть": "red_wool",
+    "orange_wool": "orange_wool",
+    "оранжевая шерсть": "orange_wool",
+    "yellow_wool": "yellow_wool",
+    "желтая шерсть": "yellow_wool",
+    "light_blue_wool": "light_blue_wool",
+    "голубая шерсть": "light_blue_wool",
+    "blue_wool": "blue_wool",
+    "синяя шерсть": "blue_wool",
+    "purple_wool": "purple_wool",
+    "фиолетовая шерсть": "purple_wool",
+    "white_wool": "white_wool",
+    "белая шерсть": "white_wool",
+    "black_wool": "black_wool",
+    "черная шерсть": "black_wool",
 }
 
 
-def resolve_object_name(goal: str) -> str | None:
-    lower = goal.lower()
+def _normalize_token(token: str) -> str:
+    token = token.lower().replace("ё", "е")
 
-    # Сначала длинные алиасы, чтобы "дубовое бревно"
-    # поймалось раньше, чем просто "дуб".
-    for alias in sorted(OBJECT_ALIASES.keys(), key=len, reverse=True):
-        if alias in lower:
-            return OBJECT_ALIASES[alias]
+    if re.fullmatch(r"[a-z0-9_]+", token):
+        return token
+
+    parsed = MORPH.parse(token)
+    if not parsed:
+        return token
+
+    return parsed[0].normal_form.replace("ё", "е")
+
+
+def normalize_text(text: str) -> str:
+    tokens = re.findall(r"[a-zA-Z0-9_]+|[а-яА-ЯёЁ]+", text.lower())
+    normalized = [_normalize_token(token) for token in tokens]
+    return " ".join(normalized)
+
+
+NORMALIZED_OBJECT_ALIASES = {
+    normalize_text(alias): canonical
+    for alias, canonical in OBJECT_SURFACE_ALIASES.items()
+}
+
+
+def _contains_any(goal: str, phrases: list[str]) -> bool:
+    normalized_goal = normalize_text(goal)
+    return any(normalize_text(phrase) in normalized_goal for phrase in phrases)
+
+
+def resolve_object_name(goal: str) -> str | None:
+    normalized_goal = normalize_text(goal)
+
+    for alias in sorted(NORMALIZED_OBJECT_ALIASES.keys(), key=len, reverse=True):
+        if alias in normalized_goal:
+            return NORMALIZED_OBJECT_ALIASES[alias]
 
     return None
 
@@ -47,70 +96,73 @@ def extract_seconds(goal: str, default: float = 3.0) -> float:
 
 
 def wants_remember(goal: str) -> bool:
-    lower = goal.lower()
-
-    return (
-        "запомни" in lower
-        or "запомнить" in lower
-        or "помни" in lower
-    )
+    return _contains_any(goal, ["запомни", "запомнить", "помни"])
 
 
 def wants_report(goal: str) -> bool:
-    lower = goal.lower()
-
-    return (
-        "скажи" in lower
-        or "сообщи" in lower
-        or "напиши" in lower
-    )
+    return _contains_any(goal, ["скажи", "сообщи", "напиши"])
 
 
 def wants_move_forward(goal: str) -> bool:
-    lower = goal.lower()
-
-    return (
-        "вперёд" in lower
-        or "вперед" in lower
-        or "пройди" in lower
-        or "иди" in lower
-    )
+    return _contains_any(goal, ["вперед", "пройди", "иди"])
 
 
 def wants_dig(goal: str) -> bool:
-    lower = goal.lower()
-
-    return (
-        "сломай" in lower
-        or "сломать" in lower
-        or "добудь" in lower
-        or "добыть" in lower
-        or "разбей" in lower
-        or "вскопать" in lower
-        or "вскопай" in lower
-    )
+    return _contains_any(goal, ["сломай", "сломать", "добудь", "добыть", "разбей", "вскопай", "вскопать"])
 
 
 def wants_change_report(goal: str) -> bool:
-    lower = goal.lower()
-
-    return (
-        "что изменилось" in lower
-        or "изменилось" in lower
-        or "скажи" in lower
-        or "сообщи" in lower
-        or "напиши" in lower
-    )
+    return _contains_any(goal, ["что изменилось", "изменилось", "скажи", "сообщи", "напиши"])
 
 
 def wants_inventory_question(goal: str) -> bool:
-    lower = goal.lower()
+    return _contains_any(
+        goal,
+        [
+            "инвентарь",
+            "в руке",
+            "у тебя есть",
+            "есть ли у тебя",
+            "сколько у тебя",
+            "выбран слот",
+        ],
+    )
+
+
+def wants_select_item_in_hotbar(goal: str) -> bool:
+    normalized_goal = normalize_text(goal)
+
+    has_hand_phrase = "в рука" in normalized_goal
+    has_hotbar_phrase = ("в hotbar" in normalized_goal) or ("в хотбар" in normalized_goal)
+    has_select_verb = any(
+        verb in normalized_goal
+        for verb in [
+            normalize_text("возьми"),
+            normalize_text("выбери"),
+            normalize_text("переключись"),
+            normalize_text("держи"),
+        ]
+    )
 
     return (
-        "инвентар" in lower
-        or "в руке" in lower
-        or ("у тебя есть" in lower)
-        or ("есть ли у тебя" in lower)
-        or ("сколько у тебя" in lower)
-        or ("выбран" in lower and "слот" in lower)
+        (has_hand_phrase and has_select_verb)
+        or (has_hotbar_phrase and has_select_verb)
+        or _contains_any(
+            goal,
+            [
+                "переключись на",
+                "выбери предмет",
+            ],
+        )
+    )
+
+
+def wants_select_hotbar_slot(goal: str) -> bool:
+    return _contains_any(
+        goal,
+        [
+            "выбери слот",
+            "переключись на слот",
+            "сделай активным слот",
+        ],
     )

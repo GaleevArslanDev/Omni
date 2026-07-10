@@ -122,6 +122,109 @@ def _request_next_action(prompt: str) -> tuple[dict[str, Any], dict[str, Any]]:
     return answer, tools_use
 
 
+def _build_report_remembered_location_text(task_progress: TaskProgress) -> str | None:
+    current_step = task_progress.current_step()
+    if current_step is None or current_step.kind != "report_remembered_location":
+        return None
+
+    target_name = current_step.args["target_name"]
+    remembered = task_progress.remembered_objects.get(target_name)
+    if remembered is None:
+        return f"Позиция объекта {target_name} не была запомнена."
+
+    return (
+        f"Запомненный {target_name} был по координатам "
+        f"X={remembered['x']}, Y={remembered['y']}, Z={remembered['z']}."
+    )
+
+
+def _build_report_observation_diff_text(
+    task_progress: TaskProgress,
+    action_log: list[ActionEntry],
+) -> str | None:
+    current_step = task_progress.current_step()
+    if current_step is None or current_step.kind != "report_observation_diff":
+        return None
+
+    if not action_log:
+        return None
+
+    target_name = current_step.args["target_name"]
+    observation_diff = action_log[-1].observation_diff or {}
+
+    disappeared = observation_diff.get("nearby_objects_disappeared", [])
+    target_disappeared = any(obj.get("name") == target_name for obj in disappeared)
+
+    parts: list[str] = []
+    if target_disappeared:
+        parts.append(f"{target_name} исчез из nearby_objects")
+
+    cursor_after = observation_diff.get("block_at_cursor_after") or {}
+    cursor_name = cursor_after.get("name")
+    if cursor_name is not None:
+        parts.append(f"block_at_cursor теперь {cursor_name}")
+
+    if not parts:
+        return f"Я не наблюдаю подтвержденных изменений для {target_name}."
+
+    return ". ".join(parts) + "."
+
+
+def _planned_step_answer(
+    task_progress: TaskProgress,
+    action_log: list[ActionEntry],
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    current_step = task_progress.current_step()
+    if current_step is None:
+        return None
+
+    if current_step.kind == "use_tool":
+        tool_name = current_step.args["tool"]
+        arguments = current_step.args["arguments"]
+
+        answer = {
+            "user_answer": f"Executing planned tool: {tool_name}",
+            "tool_use": {
+                "name": tool_name,
+                "arguments": arguments,
+            },
+            "history": f"Executed planned tool {tool_name} with deterministic arguments from Task Plan.",
+        }
+        return answer, answer["tool_use"]
+
+    if current_step.kind == "report_remembered_location":
+        text = _build_report_remembered_location_text(task_progress)
+        if text is None:
+            return None
+
+        answer = {
+            "user_answer": text,
+            "tool_use": {
+                "name": "say",
+                "arguments": {"text": text},
+            },
+            "history": text,
+        }
+        return answer, answer["tool_use"]
+
+    if current_step.kind == "report_observation_diff":
+        text = _build_report_observation_diff_text(task_progress, action_log)
+        if text is None:
+            return None
+
+        answer = {
+            "user_answer": text,
+            "tool_use": {
+                "name": "say",
+                "arguments": {"text": text},
+            },
+            "history": text,
+        }
+        return answer, answer["tool_use"]
+
+    return None
+
+
 def _handle_done_tool(client: ClientInterface) -> None:
     logger.info("[TASK_TERMINAL] LLM finished execution with done tool")
     client.stop()
@@ -196,17 +299,22 @@ def run_agent_loop(client: ClientInterface, goal: str) -> None:
             terminated_normally = True
             break
 
-        prompt = _build_prompt(
-            goal,
-            observations,
-            action_log,
-            memory_log,
-            world_state,
-            agent_state,
-            task_plan,
-            task_progress,
-        )
-        answer, tools_use = _request_next_action(prompt)
+        planned_execution = _planned_step_answer(task_progress, action_log)
+        if planned_execution is not None:
+            answer, tools_use = planned_execution
+            logger.info("Deterministic planned execution: %s", answer)
+        else:
+            prompt = _build_prompt(
+                goal,
+                observations,
+                action_log,
+                memory_log,
+                world_state,
+                agent_state,
+                task_plan,
+                task_progress,
+            )
+            answer, tools_use = _request_next_action(prompt)
 
         if tools_use["name"] == "done":
             _handle_done_tool(client)

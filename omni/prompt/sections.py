@@ -100,7 +100,7 @@ Task Progress обновляется системой из наблюдений 
 
 Если Task Progress содержит current_step, выполняй только current_step.
 Не перескакивай через шаги.
-Не повторяй шаги, у которых done=true.
+Не повторяй шаги, которые уже завершены.
 Если Task Progress all_done=true, используй done.
 
 Правила для current_step:
@@ -108,20 +108,13 @@ Task Progress обновляется системой из наблюдений 
 1. Если current_step.kind == "remember_object_location", значит объект target_name ещё не был найден в наблюдении.
 Скажи, что ты не наблюдаешь target_name рядом.
 
-2. Если current_step.kind == "use_tool":
-   - Вызови ровно тот tool, который указан в current_step.args.tool.
-   - Используй ровно arguments из current_step.args.arguments.
-   - Не меняй secs и другие аргументы без причины.
-   - Если current_step.args.tool == "report_agent_state", не вычисляй значения сам.
-   - В этом случае просто вызови report_agent_state с указанными arguments как есть.
-
-3. Если current_step.kind == "report_remembered_location":
+2. Если current_step.kind == "report_remembered_location":
    - Используй Task Progress remembered_objects.
    - Скажи координаты remembered object.
    - Не используй текущие координаты агента вместо координат объекта.
    - Если remembered_objects не содержит target_name, скажи, что позиция объекта не была запомнена.
 
-4. Если current_step.kind == "report_observation_diff":
+3. Если current_step.kind == "report_observation_diff":
     - Вызови ровно tool say.
     - Не используй никакие инструменты, кроме say на этом шаге.
     - Сообщи только то, что буквально подтверждается observation_diff.

@@ -1,3 +1,5 @@
+import re
+
 from omni.planning.goal_rules import (
     extract_seconds,
     resolve_object_name,
@@ -6,6 +8,8 @@ from omni.planning.goal_rules import (
     wants_move_forward,
     wants_remember,
     wants_report,
+    wants_select_hotbar_slot,
+    wants_select_item_in_hotbar,
 )
 from omni.planning.task_plan import TaskPlan, TaskStep
 
@@ -194,6 +198,64 @@ def try_parse_agent_state_report(goal: str) -> TaskPlan | None:
     return None
 
 
+def try_parse_select_item_in_hotbar(goal: str) -> TaskPlan | None:
+    if not wants_select_item_in_hotbar(goal):
+        return None
+
+    target_name = resolve_object_name(goal)
+
+    if target_name is None:
+        return None
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="select_item_in_hotbar",
+                kind="use_tool",
+                args={
+                    "tool": "select_item_in_hotbar",
+                    "arguments": {
+                        "target_item_name": target_name,
+                    },
+                },
+            )
+        ],
+    )
+
+
+def try_parse_select_hotbar_slot(goal: str) -> TaskPlan | None:
+    if not wants_select_hotbar_slot(goal):
+        return None
+
+    lower = goal.lower()
+    match = re.search(r"слот\s*(\d+)", lower)
+
+    if not match:
+        return None
+
+    target_slot = int(match.group(1))
+
+    if not (0 <= target_slot <= 8):
+        return None
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="select_hotbar_slot",
+                kind="use_tool",
+                args={
+                    "tool": "select_hotbar_slot",
+                    "arguments": {
+                        "target_slot": target_slot,
+                    },
+                },
+            )
+        ],
+    )
+
+
 def parse_task_plan(goal: str) -> TaskPlan:
     """
     v0.7 parser.
@@ -215,6 +277,8 @@ def parse_task_plan(goal: str) -> TaskPlan:
     """
     parsers = [
         try_parse_agent_state_report,
+        try_parse_select_hotbar_slot,
+        try_parse_select_item_in_hotbar,
         try_parse_remember_move_report,
         try_parse_dig_object,
     ]
