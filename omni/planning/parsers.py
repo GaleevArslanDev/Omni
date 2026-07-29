@@ -1,17 +1,48 @@
 import re
 
 from omni.planning.goal_rules import (
+    extract_coordinates,
     extract_seconds,
     resolve_object_name,
     wants_change_report,
     wants_dig,
     wants_move_forward,
+    wants_move_to_coordinates,
     wants_remember,
     wants_report,
     wants_select_hotbar_slot,
     wants_select_item_in_hotbar,
 )
 from omni.planning.task_plan import TaskPlan, TaskStep
+
+
+def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
+    if not wants_move_to_coordinates(goal):
+        return None
+
+    coordinates = extract_coordinates(goal)
+    if coordinates is None:
+        return None
+
+    x, y, z = coordinates
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="move_to_coordinates",
+                kind="use_tool",
+                args={
+                    "tool": "move_to_coordinates",
+                    "arguments": {
+                        "x": x,
+                        "y": y,
+                        "z": z,
+                    },
+                },
+            )
+        ],
+    )
 
 
 def try_parse_remember_move_report(goal: str) -> TaskPlan | None:
@@ -23,9 +54,7 @@ def try_parse_remember_move_report(goal: str) -> TaskPlan | None:
     if not wants_remember(goal):
         return None
 
-    steps: list[TaskStep] = []
-
-    steps.append(
+    steps: list[TaskStep] = [
         TaskStep(
             id="remember_target_location",
             kind="remember_object_location",
@@ -33,7 +62,7 @@ def try_parse_remember_move_report(goal: str) -> TaskPlan | None:
                 "target_name": target_name,
             },
         )
-    )
+    ]
 
     if wants_move_forward(goal):
         secs = extract_seconds(goal, default=3.0)
@@ -288,24 +317,13 @@ def try_parse_select_hotbar_slot(goal: str) -> TaskPlan | None:
 
 def parse_task_plan(goal: str) -> TaskPlan:
     """
-    v0.7 parser.
+    Narrow deterministic parser for known goal templates.
 
-    Это НЕ универсальный планнер.
-    Это набор маленьких детерминированных распознавателей известных шаблонов.
-
-    Сейчас поддерживаются:
-
-    1. remember/move/report:
-       "Запомни chest, пройди вперёд 3 секунды, скажи где был chest"
-
-    2. dig/report-diff:
-       "Повернись к oak_log, сломай его, скажи что изменилось"
-
-    Смешанные команды с несколькими разными целями пока лучше не поддерживать.
-    Если паттерн не распознан, возвращаем пустой план.
-    Тогда LLM работает как раньше.
+    If no template matches, we return an empty plan and let the LLM act
+    in the usual free-form mode.
     """
     parsers = [
+        try_parse_move_to_coordinates,
         try_parse_agent_state_report,
         try_parse_select_hotbar_slot,
         try_parse_select_item_if_present,

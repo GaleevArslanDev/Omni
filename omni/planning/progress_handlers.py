@@ -129,6 +129,18 @@ def _update_use_tool_step(
         return
 
     if not action.success:
+        if expected_tool == "move_to_coordinates" and isinstance(action.result, dict):
+            error = action.result.get("error", "unknown_error")
+            reason = action.result.get("reason", "unknown_reason")
+            task_progress.mark_failed(
+                current.id,
+                (
+                    f"{expected_tool} failed on step {action.step}: "
+                    f"error={error}, reason={reason}"
+                ),
+            )
+            return
+
         task_progress.mark_failed(
             current.id,
             f"{expected_tool} failed on step {action.step}: {action.result}",

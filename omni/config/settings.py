@@ -67,3 +67,5 @@ DIG_BLOCK_MAX_DISTANCE = 4.5
 DIG_TIMEOUT_SECONDS = 10
 # Max time to wait for Mineflayer changing slot callbacks.
 SLOT_SWITCH_TIMEOUT_SECONDS = 2.0
+# Max time to wait for Mineflayer reached the goal callbacks.
+MOVE_TO_COORDINATES_TIMEOUT_SECONDS = 30.0

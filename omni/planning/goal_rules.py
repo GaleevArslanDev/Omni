@@ -14,6 +14,7 @@ OBJECT_SURFACE_ALIASES = {
     "дубовый ствол": "oak_log",
     "birch_log": "birch_log",
     "береза": "birch_log",
+    "берёзовое бревно": "birch_log",
     "березовое бревно": "birch_log",
     "spruce_log": "spruce_log",
     "ель": "spruce_log",
@@ -25,12 +26,14 @@ OBJECT_SURFACE_ALIASES = {
     "печка": "furnace",
     "green_wool": "green_wool",
     "зеленая шерсть": "green_wool",
+    "зелёная шерсть": "green_wool",
     "red_wool": "red_wool",
     "красная шерсть": "red_wool",
     "orange_wool": "orange_wool",
     "оранжевая шерсть": "orange_wool",
     "yellow_wool": "yellow_wool",
     "желтая шерсть": "yellow_wool",
+    "жёлтая шерсть": "yellow_wool",
     "light_blue_wool": "light_blue_wool",
     "голубая шерсть": "light_blue_wool",
     "blue_wool": "blue_wool",
@@ -41,6 +44,7 @@ OBJECT_SURFACE_ALIASES = {
     "белая шерсть": "white_wool",
     "black_wool": "black_wool",
     "черная шерсть": "black_wool",
+    "чёрная шерсть": "black_wool",
 }
 
 
@@ -95,6 +99,34 @@ def extract_seconds(goal: str, default: float = 3.0) -> float:
     return float(value)
 
 
+def extract_coordinates(goal: str) -> tuple[float, float, float] | None:
+    named_patterns = {
+        axis: re.search(rf"\b{axis}\s*=\s*(-?\d+(?:[.,]\d+)?)", goal, re.IGNORECASE)
+        for axis in ("x", "y", "z")
+    }
+    if all(match is not None for match in named_patterns.values()):
+        return tuple(
+            float(named_patterns[axis].group(1).replace(",", "."))
+            for axis in ("x", "y", "z")
+        )
+
+    coordinate_triples = [
+        r"(?:до|к|на)?\s*координат\w*\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\s*[,; ]+\s*(-?\d+(?:[.,]\d+)?)\s*[,; ]+\s*(-?\d+(?:[.,]\d+)?)",
+        r"(?:to|towards)?\s*coordinates?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)\s*[,; ]+\s*(-?\d+(?:[.,]\d+)?)\s*[,; ]+\s*(-?\d+(?:[.,]\d+)?)",
+    ]
+
+    for pattern in coordinate_triples:
+        match = re.search(pattern, goal, re.IGNORECASE)
+        if match:
+            return tuple(float(value.replace(",", ".")) for value in match.groups())
+
+    all_numbers = re.findall(r"-?\d+(?:[.,]\d+)?", goal)
+    if len(all_numbers) == 3:
+        return tuple(float(value.replace(",", ".")) for value in all_numbers)
+
+    return None
+
+
 def wants_remember(goal: str) -> bool:
     return _contains_any(goal, ["запомни", "запомнить", "помни"])
 
@@ -104,7 +136,23 @@ def wants_report(goal: str) -> bool:
 
 
 def wants_move_forward(goal: str) -> bool:
-    return _contains_any(goal, ["вперед", "пройди", "иди"])
+    return _contains_any(goal, ["вперед", "вперёд", "пройди", "иди"])
+
+
+def wants_move_to_coordinates(goal: str) -> bool:
+    return _contains_any(
+        goal,
+        [
+            "дойди до координат",
+            "дойди к координатам",
+            "подойди к координатам",
+            "иди к координатам",
+            "переместись к координатам",
+            "move to coordinates",
+            "go to coordinates",
+            "walk to coordinates",
+        ],
+    )
 
 
 def wants_dig(goal: str) -> bool:

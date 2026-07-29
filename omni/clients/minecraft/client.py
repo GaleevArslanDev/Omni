@@ -23,6 +23,7 @@ from omni.config import (
 )
 
 mineflayer = require("mineflayer")
+mineflayer_pathfinder = require("mineflayer-pathfinder")
 
 
 class MinecraftClient(
@@ -69,6 +70,7 @@ class MinecraftClient(
 
     def _start_bot(self) -> None:
         self.bot = mineflayer.createBot(self.bot_params)
+        self.bot.loadPlugin(mineflayer_pathfinder.pathfinder)
         self._start_events()
 
     def _start_events(self) -> None:
