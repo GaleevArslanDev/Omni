@@ -141,6 +141,14 @@ def _update_use_tool_step(
             )
             return
 
+        if expected_tool == "place_block_at_cursor" and isinstance(action.result, dict):
+            error = action.result.get("error", "unknown_error")
+            task_progress.mark_failed(
+                current.id,
+                f"{expected_tool} failed on step {action.step}: error={error}",
+            )
+            return
+
         task_progress.mark_failed(
             current.id,
             f"{expected_tool} failed on step {action.step}: {action.result}",
@@ -185,6 +193,24 @@ def _update_use_tool_step(
                 current.id,
                 (
                     f"dig_block_at_cursor dug {dug_name!r} instead of "
+                    f"{expected_name!r} on step {action.step}"
+                ),
+            )
+            return
+
+    if expected_tool == "place_block_at_cursor":
+        expected_name = expected_arguments.get("expected_item_name")
+        placed_name = (
+            (action.result or {})
+            .get("placed_block", {})
+            .get("name")
+        )
+
+        if expected_name is not None and placed_name != expected_name:
+            task_progress.mark_failed(
+                current.id,
+                (
+                    f"place_block_at_cursor placed {placed_name!r} instead of "
                     f"{expected_name!r} on step {action.step}"
                 ),
             )

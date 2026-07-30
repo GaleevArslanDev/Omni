@@ -8,6 +8,7 @@ from omni.planning.goal_rules import (
     wants_dig,
     wants_move_forward,
     wants_move_to_coordinates,
+    wants_place_block,
     wants_remember,
     wants_report,
     wants_select_hotbar_slot,
@@ -38,6 +39,67 @@ def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
                         "x": x,
                         "y": y,
                         "z": z,
+                    },
+                },
+            )
+        ],
+    )
+
+
+def try_parse_select_and_place_block(goal: str) -> TaskPlan | None:
+    if not wants_place_block(goal):
+        return None
+
+    target_name = resolve_object_name(goal)
+    if target_name is None:
+        return None
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="select_item_for_placement",
+                kind="use_tool",
+                args={
+                    "tool": "select_item_in_hotbar",
+                    "arguments": {
+                        "target_item_name": target_name,
+                    },
+                },
+            ),
+            TaskStep(
+                id="place_selected_block",
+                kind="use_tool",
+                args={
+                    "tool": "place_block_at_cursor",
+                    "arguments": {
+                        "face": "top",
+                        "expected_item_name": target_name,
+                    },
+                },
+            ),
+        ],
+    )
+
+
+def try_parse_place_block_from_hand(goal: str) -> TaskPlan | None:
+    if not wants_place_block(goal):
+        return None
+
+    target_name = resolve_object_name(goal)
+    if target_name is not None:
+        return None
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="place_block_from_hand",
+                kind="use_tool",
+                args={
+                    "tool": "place_block_at_cursor",
+                    "arguments": {
+                        "face": "top",
                     },
                 },
             )
@@ -324,6 +386,8 @@ def parse_task_plan(goal: str) -> TaskPlan:
     """
     parsers = [
         try_parse_move_to_coordinates,
+        try_parse_select_and_place_block,
+        try_parse_place_block_from_hand,
         try_parse_agent_state_report,
         try_parse_select_hotbar_slot,
         try_parse_select_item_if_present,

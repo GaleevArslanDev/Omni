@@ -14,8 +14,9 @@ OBJECT_SURFACE_ALIASES = {
     "дубовый ствол": "oak_log",
     "birch_log": "birch_log",
     "береза": "birch_log",
-    "берёзовое бревно": "birch_log",
+    "берёза": "birch_log",
     "березовое бревно": "birch_log",
+    "берёзовое бревно": "birch_log",
     "spruce_log": "spruce_log",
     "ель": "spruce_log",
     "еловое бревно": "spruce_log",
@@ -151,6 +152,20 @@ def wants_move_to_coordinates(goal: str) -> bool:
             "move to coordinates",
             "go to coordinates",
             "walk to coordinates",
+        ],
+    )
+
+
+def wants_place_block(goal: str) -> bool:
+    return _contains_any(
+        goal,
+        [
+            "поставь",
+            "установи",
+            "размести",
+            "положи блок",
+            "place block",
+            "place it",
         ],
     )
 
