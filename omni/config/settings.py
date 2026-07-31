@@ -49,6 +49,12 @@ OBSERVED_BLOCK_MAX_PER_TYPE = 5
 # Final cap after all nearby objects are merged and distance-sorted.
 MAX_NEARBY_OBJECTS = 20
 
+# Nearby entity observation.
+OBSERVED_ENTITY_RADIUS = 16
+MAX_NEARBY_ENTITIES = 20
+MAX_DROPPED_ITEMS = 20
+MAX_NEARBY_VEHICLES = 10
+
 # Blocks used only for the coarse ground summary in observations.
 GROUND_BLOCK_NAMES = (
     "grass_block",
