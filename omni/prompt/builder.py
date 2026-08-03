@@ -3,6 +3,7 @@ from omni.planning.task_progress import TaskProgress
 from omni.prompt.sections import (
     render_action_log,
     render_agent_state,
+    render_entity_observation,
     render_global_rules,
     render_intro,
     render_memory,
@@ -32,6 +33,7 @@ def create_prompt(
         render_intro(goal, observations),
         render_action_log(actions),
         render_world_state(world_state),
+        render_entity_observation(),
         render_agent_state(agent_state),
         render_task_state(task_plan, task_progress),
         render_memory(memory),
