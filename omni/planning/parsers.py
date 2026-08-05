@@ -3,6 +3,7 @@ import re
 from omni.planning.goal_rules import (
     extract_coordinates,
     extract_seconds,
+    normalize_text,
     resolve_object_name,
     wants_change_report,
     wants_dig,
@@ -15,6 +16,275 @@ from omni.planning.goal_rules import (
     wants_select_item_in_hotbar,
 )
 from omni.planning.task_plan import TaskPlan, TaskStep
+
+
+ENTITY_SURFACE_ALIASES = {
+    "cow": "cow",
+    "корова": "cow",
+    "sheep": "sheep",
+    "овца": "sheep",
+    "pig": "pig",
+    "свинья": "pig",
+    "chicken": "chicken",
+    "курица": "chicken",
+    "zombie": "zombie",
+    "зомби": "zombie",
+    "skeleton": "skeleton",
+    "скелет": "skeleton",
+    "creeper": "creeper",
+    "крипер": "creeper",
+    "spider": "spider",
+    "паук": "spider",
+    "villager": "villager",
+    "житель": "villager",
+    "деревенский житель": "villager",
+    "wandering_trader": "wandering_trader",
+    "странствующий торговец": "wandering_trader",
+    "boat": "boat",
+    "лодка": "boat",
+    "minecart": "minecart",
+    "вагонетка": "minecart",
+}
+
+NORMALIZED_ENTITY_ALIASES = {
+    normalize_text(alias): canonical
+    for alias, canonical in ENTITY_SURFACE_ALIASES.items()
+}
+
+ATTITUDE_ALIASES = {
+    "hostile": [
+        "hostile",
+        "hostile mobs",
+        "враждебный",
+        "враждебные",
+        "враждебные мобы",
+        "монстры",
+        "опасные мобы",
+    ],
+    "neutral": [
+        "neutral",
+        "нейтральные",
+        "нейтральные мобы",
+    ],
+    "friendly": [
+        "friendly",
+        "passive",
+        "friendly mobs",
+        "пассивные",
+        "мирные",
+        "дружелюбные",
+        "животные",
+    ],
+    "utility": [
+        "utility",
+        "npc",
+        "utility entities",
+        "торговцы",
+        "полезные",
+    ],
+}
+
+
+def _resolve_entity_name(goal: str) -> str | None:
+    normalized_goal = normalize_text(goal)
+
+    for alias in sorted(NORMALIZED_ENTITY_ALIASES.keys(), key=len, reverse=True):
+        if alias in normalized_goal:
+            return NORMALIZED_ENTITY_ALIASES[alias]
+
+    return None
+
+
+def _resolve_entity_attitude(goal: str) -> str | None:
+    normalized_goal = normalize_text(goal)
+
+    for attitude, aliases in ATTITUDE_ALIASES.items():
+        for alias in aliases:
+            if normalize_text(alias) in normalized_goal:
+                return attitude
+
+    return None
+
+
+def _contains_phrase(goal: str, phrases: list[str]) -> bool:
+    normalized_goal = normalize_text(goal)
+    return any(normalize_text(phrase) in normalized_goal for phrase in phrases)
+
+
+def _mentions_nearby_scope(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "рядом",
+            "поблизости",
+            "вокруг",
+            "nearby",
+            "around",
+            "near me",
+        ],
+    )
+
+
+def _mentions_entity_scope(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "сущности",
+            "сущность",
+            "мобы",
+            "моб",
+            "entities",
+            "entity",
+            "mobs",
+            "mob",
+        ],
+    )
+
+
+def _mentions_count_question(goal: str) -> bool:
+    return _contains_phrase(goal, ["сколько", "how many"])
+
+
+def _mentions_has_question(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "есть ли",
+            "есть",
+            "is there",
+            "are there",
+        ],
+    )
+
+
+def _mentions_summary_question(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "какие",
+            "кто",
+            "что",
+            "what",
+            "which",
+        ],
+    )
+
+
+def _mentions_dropped_items_scope(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "на земле",
+            "валяется",
+            "лежащие предметы",
+            "лежащие вещи",
+            "dropped item",
+            "dropped items",
+            "ground item",
+            "ground items",
+        ],
+    )
+
+
+def _mentions_vehicles_scope(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "лодка",
+            "лодки",
+            "вагонетка",
+            "вагонетки",
+            "vehicle",
+            "vehicles",
+            "transport",
+        ],
+    )
+
+
+def try_parse_nearby_entity_report(goal: str) -> TaskPlan | None:
+    normalized_goal = normalize_text(goal)
+
+    question_mode = None
+    if _mentions_count_question(goal):
+        question_mode = "count"
+    elif _mentions_has_question(goal):
+        question_mode = "has"
+    elif _mentions_summary_question(goal):
+        question_mode = "summary"
+
+    if question_mode is None:
+        return None
+
+    if "у тебя" in normalized_goal or "инвентар" in normalized_goal:
+        return None
+
+    entity_name = _resolve_entity_name(goal)
+    attitude = _resolve_entity_attitude(goal)
+    item_name = resolve_object_name(goal)
+
+    has_entity_context = any(
+        [
+            _mentions_nearby_scope(goal),
+            _mentions_entity_scope(goal),
+            _mentions_dropped_items_scope(goal),
+            _mentions_vehicles_scope(goal),
+            entity_name is not None,
+            attitude is not None,
+        ]
+    )
+    if not has_entity_context:
+        return None
+
+    category = "nearby"
+    target_name = None
+
+    if _mentions_dropped_items_scope(goal):
+        category = "dropped_items"
+        target_name = item_name
+    elif _mentions_vehicles_scope(goal) or entity_name in {"boat", "minecart"}:
+        category = "vehicles"
+        target_name = entity_name
+    else:
+        target_name = entity_name
+
+    if question_mode == "count":
+        if category == "nearby" and attitude is not None and target_name is None:
+            mode = "count_attitude"
+        else:
+            mode = "count_name"
+    elif question_mode == "has":
+        if category == "nearby" and attitude is not None and target_name is None:
+            mode = "has_attitude"
+        else:
+            mode = "has_name"
+    else:
+        mode = "summary"
+
+    if mode in {"has_name", "count_name"} and target_name is None:
+        return None
+
+    arguments = {
+        "category": category,
+        "mode": mode,
+    }
+    if target_name is not None:
+        arguments["target_name"] = target_name
+    if attitude is not None:
+        arguments["attitude"] = attitude
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="report_nearby_entities",
+                kind="use_tool",
+                args={
+                    "tool": "report_nearby_entities",
+                    "arguments": arguments,
+                },
+            )
+        ],
+    )
 
 
 def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
@@ -388,6 +658,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
         try_parse_move_to_coordinates,
         try_parse_select_and_place_block,
         try_parse_place_block_from_hand,
+        try_parse_nearby_entity_report,
         try_parse_agent_state_report,
         try_parse_select_hotbar_slot,
         try_parse_select_item_if_present,
