@@ -287,6 +287,69 @@ def try_parse_nearby_entity_report(goal: str) -> TaskPlan | None:
     )
 
 
+def _wants_entity_targeting(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "выбери цель",
+            "выбери ближайшую цель",
+            "выбери ближайшего",
+            "выбери ближайшую",
+            "выбери ближайший",
+            "найди ближайшего",
+            "найди ближайшую",
+            "найди ближайший",
+            "target nearest",
+            "select nearest",
+            "find nearest",
+        ],
+    )
+
+
+def try_parse_target_nearest_entity(goal: str) -> TaskPlan | None:
+    if not _wants_entity_targeting(goal):
+        return None
+
+    entity_name = _resolve_entity_name(goal)
+    attitude = _resolve_entity_attitude(goal)
+    item_name = resolve_object_name(goal)
+
+    category = "nearby"
+    target_name = entity_name
+
+    if _mentions_dropped_items_scope(goal):
+        category = "dropped_items"
+        target_name = item_name
+    elif _mentions_vehicles_scope(goal) or entity_name in {"boat", "minecart"}:
+        category = "vehicles"
+        target_name = entity_name
+
+    if target_name is None and attitude is None and category == "nearby":
+        return None
+
+    arguments = {
+        "category": category,
+    }
+    if target_name is not None:
+        arguments["target_name"] = target_name
+    if attitude is not None:
+        arguments["attitude"] = attitude
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="target_nearest_entity",
+                kind="use_tool",
+                args={
+                    "tool": "target_nearest_entity",
+                    "arguments": arguments,
+                },
+            )
+        ],
+    )
+
+
 def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
     if not wants_move_to_coordinates(goal):
         return None
@@ -658,6 +721,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
         try_parse_move_to_coordinates,
         try_parse_select_and_place_block,
         try_parse_place_block_from_hand,
+        try_parse_target_nearest_entity,
         try_parse_nearby_entity_report,
         try_parse_agent_state_report,
         try_parse_select_hotbar_slot,

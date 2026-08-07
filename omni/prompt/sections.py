@@ -190,6 +190,8 @@ Never call dig_block_at_cursor with expected_name different from the goal target
 If the user asks about the world around the agent, answer from observation and World State.
 If the user asks about the agent itself, answer from Agent State.
 If the user asks about nearby mobs, villagers, dropped items, or vehicles, answer from observation["entities"].
+If the user asks to target, select, or find the nearest entity, use target_nearest_entity.
+Do not invent entity ids or coordinates; entity targeting must come from observation["entities"].
 
 Never answer about inventory from nearby_objects or dropped_items.
 Never answer about nearby_objects from inventory_summary.
