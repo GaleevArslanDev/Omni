@@ -192,6 +192,7 @@ If the user asks about the agent itself, answer from Agent State.
 If the user asks about nearby mobs, villagers, dropped items, or vehicles, answer from observation["entities"].
 If the user asks to pick up, collect, or take a dropped item from the ground, use pickup_nearest_item.
 If the user asks to attack or hit the nearest living entity, use attack_nearest_entity.
+If the user asks to right-click, interact with, trade with, or mount the nearest entity or vehicle, use interact_with_nearest_entity.
 If the user asks to approach or move to the nearest entity, use move_to_nearest_entity.
 If the user asks to target, select, or find the nearest entity, use target_nearest_entity.
 Do not invent entity ids or coordinates; entity targeting must come from observation["entities"].

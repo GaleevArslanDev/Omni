@@ -519,6 +519,72 @@ def try_parse_pickup_nearest_item(goal: str) -> TaskPlan | None:
     )
 
 
+def _wants_interact_with_nearest_entity(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "взаимодействуй",
+            "взаимодействуй с ближайшим",
+            "взаимодействуй с ближайшей",
+            "нажми на ближайшего",
+            "нажми на ближайшую",
+            "открой торговлю",
+            "поторгуй",
+            "сядь в ближайшую лодку",
+            "сядь в лодку",
+            "interact",
+            "interact with nearest",
+            "open trade",
+            "trade with nearest",
+            "mount nearest",
+            "sit in nearest boat",
+        ],
+    )
+
+
+def try_parse_interact_with_nearest_entity(goal: str) -> TaskPlan | None:
+    if not _wants_interact_with_nearest_entity(goal):
+        return None
+
+    if _mentions_dropped_items_scope(goal):
+        return None
+
+    entity_name = _resolve_entity_name(goal)
+    attitude = _resolve_entity_attitude(goal)
+
+    category = "nearby"
+    target_name = entity_name
+
+    if _mentions_vehicles_scope(goal) or entity_name in {"boat", "minecart"}:
+        category = "vehicles"
+        target_name = entity_name
+
+    if target_name is None and attitude is None and category == "nearby":
+        return None
+
+    arguments = {
+        "category": category,
+    }
+    if target_name is not None:
+        arguments["target_name"] = target_name
+    if attitude is not None:
+        arguments["attitude"] = attitude
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="interact_with_nearest_entity",
+                kind="use_tool",
+                args={
+                    "tool": "interact_with_nearest_entity",
+                    "arguments": arguments,
+                },
+            )
+        ],
+    )
+
+
 def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
     if not wants_move_to_coordinates(goal):
         return None
@@ -892,6 +958,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
         try_parse_place_block_from_hand,
         try_parse_pickup_nearest_item,
         try_parse_attack_nearest_entity,
+        try_parse_interact_with_nearest_entity,
         try_parse_move_to_nearest_entity,
         try_parse_target_nearest_entity,
         try_parse_nearby_entity_report,

@@ -89,3 +89,33 @@ def distance_between_positions(first: dict[str, Any], second: dict[str, Any]) ->
     dy = float(first["y"]) - float(second["y"])
     dz = float(first["z"]) - float(second["z"])
     return round(math.sqrt(dx * dx + dy * dy + dz * dz), 2)
+
+
+def get_raw_bot_entity_by_id(bot: Any, entity_id: Any) -> Any | None:
+    entities = getattr(bot, "entities", None)
+    if entities is None:
+        return None
+
+    for key in (entity_id, str(entity_id)):
+        try:
+            entity = entities[key]
+            if entity is not None:
+                return entity
+        except Exception:
+            pass
+
+    try:
+        keys = list(entities)
+    except Exception:
+        return None
+
+    for key in keys:
+        try:
+            entity = entities[key]
+        except Exception:
+            continue
+
+        if getattr(entity, "id", None) == entity_id:
+            return entity
+
+    return None
