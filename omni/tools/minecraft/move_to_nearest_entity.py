@@ -1,22 +1,10 @@
-import math
-
 from omni.clients.minecraft.client import MinecraftClient
-from omni.helpers.entity_targeting import select_nearest_entity_from_observation
+from omni.helpers.entity_targeting import (
+    distance_between_positions,
+    find_entity_by_id,
+    select_nearest_entity_from_observation,
+)
 from omni.tools.base import Tool
-
-
-def _distance_between_positions(first: dict, second: dict) -> float:
-    dx = float(first["x"]) - float(second["x"])
-    dy = float(first["y"]) - float(second["y"])
-    dz = float(first["z"]) - float(second["z"])
-    return round(math.sqrt(dx * dx + dy * dy + dz * dz), 2)
-
-
-def _find_entity_by_id(observation: dict, category: str, entity_id) -> dict | None:
-    for entity in observation.get("entities", {}).get(category, []):
-        if entity.get("id") == entity_id:
-            return entity
-    return None
 
 
 class MoveToNearestEntityTool(Tool):
@@ -61,7 +49,7 @@ class MoveToNearestEntityTool(Tool):
 
         after = client.observe()
         end_position = after["position"]
-        observed_after = _find_entity_by_id(
+        observed_after = find_entity_by_id(
             observation=after,
             category=category,
             entity_id=target.get("id"),
@@ -69,7 +57,7 @@ class MoveToNearestEntityTool(Tool):
         end_distance = (
             observed_after.get("distance")
             if observed_after is not None
-            else _distance_between_positions(end_position, target_position)
+            else distance_between_positions(end_position, target_position)
         )
 
         result = {

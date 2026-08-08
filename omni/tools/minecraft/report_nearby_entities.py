@@ -1,13 +1,6 @@
 from omni.clients.minecraft.client import MinecraftClient
+from omni.config import ENTITY_ATTITUDE_LABELS
 from omni.tools.base import Tool
-
-
-ATTITUDE_LABELS = {
-    "hostile": "враждебных сущностей",
-    "neutral": "нейтральных сущностей",
-    "friendly": "мирных сущностей",
-    "utility": "полезных сущностей",
-}
 
 
 class ReportNearbyEntitiesTool(Tool):
@@ -47,14 +40,14 @@ class ReportNearbyEntitiesTool(Tool):
 
                 if not summary:
                     if attitude is not None:
-                        attitude_label = ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
+                        attitude_label = ENTITY_ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
                         text = f"Рядом нет {attitude_label}."
                     else:
                         text = "Рядом нет наблюдаемых сущностей."
                 else:
                     parts = [f"{name}: {count}" for name, count in sorted(summary.items())]
                     if attitude is not None:
-                        attitude_label = ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
+                        attitude_label = ENTITY_ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
                         text = f"Рядом наблюдаются {attitude_label}: " + ", ".join(parts)
                     else:
                         text = "Рядом наблюдаются сущности: " + ", ".join(parts)
@@ -81,7 +74,7 @@ class ReportNearbyEntitiesTool(Tool):
                     return False, {"error": "attitude is required for nearby/has_attitude"}
 
                 count = int(entities["attitude_summary"].get(attitude, 0))
-                attitude_label = ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
+                attitude_label = ENTITY_ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
                 if count > 0:
                     text = f"Да, рядом есть {attitude_label}."
                 else:
@@ -92,7 +85,7 @@ class ReportNearbyEntitiesTool(Tool):
                     return False, {"error": "attitude is required for nearby/count_attitude"}
 
                 count = int(entities["attitude_summary"].get(attitude, 0))
-                attitude_label = ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
+                attitude_label = ENTITY_ATTITUDE_LABELS.get(attitude, f"entities with attitude={attitude}")
                 text = f"Рядом {count} {attitude_label}."
 
             else:

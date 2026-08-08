@@ -54,6 +54,146 @@ OBSERVED_ENTITY_RADIUS = 16
 MAX_NEARBY_ENTITIES = 20
 MAX_DROPPED_ITEMS = 20
 MAX_NEARBY_VEHICLES = 10
+ENTITY_CATEGORIES = ("nearby", "dropped_items", "vehicles")
+DEFAULT_ENTITY_ATTACK_RANGE = 3.0
+ENTITY_ATTITUDE_LABELS = {
+    "hostile": "враждебных сущностей",
+    "neutral": "нейтральных сущностей",
+    "friendly": "мирных сущностей",
+    "utility": "полезных сущностей",
+}
+HOSTILE_ENTITY_NAMES = (
+    "blaze",
+    "cave_spider",
+    "creeper",
+    "drowned",
+    "elder_guardian",
+    "endermite",
+    "evoker",
+    "ghast",
+    "guardian",
+    "hoglin",
+    "husk",
+    "magma_cube",
+    "phantom",
+    "pillager",
+    "ravager",
+    "shulker",
+    "silverfish",
+    "skeleton",
+    "slime",
+    "spider",
+    "stray",
+    "vex",
+    "vindicator",
+    "warden",
+    "witch",
+    "wither_skeleton",
+    "zoglin",
+    "zombie",
+    "zombie_villager",
+)
+NEUTRAL_ENTITY_NAMES = (
+    "bee",
+    "dolphin",
+    "enderman",
+    "goat",
+    "iron_golem",
+    "llama",
+    "panda",
+    "piglin",
+    "polar_bear",
+    "trader_llama",
+    "wolf",
+    "zombified_piglin",
+)
+FRIENDLY_ENTITY_NAMES = (
+    "allay",
+    "axolotl",
+    "cat",
+    "chicken",
+    "cod",
+    "cow",
+    "donkey",
+    "fox",
+    "frog",
+    "glow_squid",
+    "horse",
+    "mooshroom",
+    "mule",
+    "ocelot",
+    "parrot",
+    "pig",
+    "rabbit",
+    "salmon",
+    "sheep",
+    "sniffer",
+    "snow_golem",
+    "squid",
+    "strider",
+    "tadpole",
+    "tropical_fish",
+    "turtle",
+)
+UTILITY_ENTITY_NAMES = (
+    "villager",
+    "wandering_trader",
+)
+VEHICLE_ENTITY_NAMES = (
+    "acacia_boat",
+    "acacia_chest_boat",
+    "bamboo_chest_raft",
+    "bamboo_raft",
+    "birch_boat",
+    "birch_chest_boat",
+    "boat",
+    "cherry_boat",
+    "cherry_chest_boat",
+    "chest_boat",
+    "chest_minecart",
+    "dark_oak_boat",
+    "dark_oak_chest_boat",
+    "furnace_minecart",
+    "hopper_minecart",
+    "jungle_boat",
+    "jungle_chest_boat",
+    "mangrove_boat",
+    "mangrove_chest_boat",
+    "minecart",
+    "oak_boat",
+    "oak_chest_boat",
+    "spruce_boat",
+    "spruce_chest_boat",
+    "tnt_minecart",
+)
+IGNORED_ENTITY_NAMES = (
+    "area_effect_cloud",
+    "armor_stand",
+    "arrow",
+    "dragon_fireball",
+    "egg",
+    "ender_pearl",
+    "experience_orb",
+    "eye_of_ender",
+    "fireball",
+    "firework_rocket",
+    "fishing_bobber",
+    "glow_item_frame",
+    "item_frame",
+    "leash_knot",
+    "llama_spit",
+    "painting",
+    "potion",
+    "small_fireball",
+    "snowball",
+    "spectral_arrow",
+    "trident",
+    "wither_skull",
+)
+IGNORED_ENTITY_TYPES = (
+    "orb",
+    "projectile",
+)
 
 # Blocks used only for the coarse ground summary in observations.
 GROUND_BLOCK_NAMES = (
@@ -77,3 +217,11 @@ PLACE_BLOCK_TIMEOUT_SECONDS = 5
 SLOT_SWITCH_TIMEOUT_SECONDS = 2.0
 # Max time to wait for Mineflayer reached the goal callbacks.
 MOVE_TO_COORDINATES_TIMEOUT_SECONDS = 30.0
+PLACE_BLOCK_FACE_OFFSETS = {
+    "bottom": (0, -1, 0),
+    "top": (0, 1, 0),
+    "north": (0, 0, -1),
+    "south": (0, 0, 1),
+    "west": (-1, 0, 0),
+    "east": (1, 0, 0),
+}

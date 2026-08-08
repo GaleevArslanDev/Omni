@@ -1,7 +1,7 @@
 from typing import Any
+import math
 
-
-ENTITY_CATEGORIES = {"nearby", "dropped_items", "vehicles"}
+from omni.config import ENTITY_CATEGORIES
 
 
 def _matches_target_name(entity_name: str | None, target_name: str) -> bool:
@@ -71,3 +71,21 @@ def select_nearest_entity_from_observation(
         "attitude": attitude,
         "target": target,
     }
+
+
+def find_entity_by_id(
+    observation: dict[str, Any],
+    category: str,
+    entity_id: Any,
+) -> dict[str, Any] | None:
+    for entity in observation.get("entities", {}).get(category, []):
+        if entity.get("id") == entity_id:
+            return entity
+    return None
+
+
+def distance_between_positions(first: dict[str, Any], second: dict[str, Any]) -> float:
+    dx = float(first["x"]) - float(second["x"])
+    dy = float(first["y"]) - float(second["y"])
+    dz = float(first["z"]) - float(second["z"])
+    return round(math.sqrt(dx * dx + dy * dy + dz * dz), 2)

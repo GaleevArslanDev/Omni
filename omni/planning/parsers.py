@@ -416,6 +416,68 @@ def try_parse_move_to_nearest_entity(goal: str) -> TaskPlan | None:
     )
 
 
+def _wants_attack_nearest_entity(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "атакуй ближайшего",
+            "атакуй ближайшую",
+            "атакуй ближайший",
+            "ударь ближайшего",
+            "ударь ближайшую",
+            "ударь ближайший",
+            "бей ближайшего",
+            "бей ближайшую",
+            "убей ближайшего",
+            "убей ближайшую",
+            "атакуй",
+            "ударь",
+            "бей",
+            "убей",
+            "attack nearest",
+            "hit nearest",
+            "kill nearest",
+            "attack",
+            "hit",
+            "kill",
+        ],
+    )
+
+
+def try_parse_attack_nearest_entity(goal: str) -> TaskPlan | None:
+    if not _wants_attack_nearest_entity(goal):
+        return None
+
+    entity_name = _resolve_entity_name(goal)
+    attitude = _resolve_entity_attitude(goal)
+
+    if entity_name in {"boat", "minecart"}:
+        return None
+
+    if entity_name is None and attitude is None:
+        return None
+
+    arguments = {}
+    if entity_name is not None:
+        arguments["target_name"] = entity_name
+    if attitude is not None:
+        arguments["attitude"] = attitude
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="attack_nearest_entity",
+                kind="use_tool",
+                args={
+                    "tool": "attack_nearest_entity",
+                    "arguments": arguments,
+                },
+            )
+        ],
+    )
+
+
 def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
     if not wants_move_to_coordinates(goal):
         return None
@@ -787,6 +849,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
         try_parse_move_to_coordinates,
         try_parse_select_and_place_block,
         try_parse_place_block_from_hand,
+        try_parse_attack_nearest_entity,
         try_parse_move_to_nearest_entity,
         try_parse_target_nearest_entity,
         try_parse_nearby_entity_report,

@@ -6,19 +6,11 @@ from omni.config import (
     BLOCK_AT_CURSOR_MAX_DISTANCE,
     DIG_BLOCK_MAX_DISTANCE,
     DIG_TIMEOUT_SECONDS,
+    PLACE_BLOCK_FACE_OFFSETS,
     PLACE_BLOCK_TIMEOUT_SECONDS,
 )
 
 Vec3 = require("vec3").Vec3
-
-FACE_VECTORS = {
-    "bottom": Vec3(0, -1, 0),
-    "top": Vec3(0, 1, 0),
-    "north": Vec3(0, 0, -1),
-    "south": Vec3(0, 0, 1),
-    "west": Vec3(-1, 0, 0),
-    "east": Vec3(1, 0, 0),
-}
 
 
 class InteractionMixin:
@@ -112,12 +104,13 @@ class InteractionMixin:
                 "error": "no_reference_block",
             }
 
-        face_vector = FACE_VECTORS.get(face)
-        if face_vector is None:
+        face_offset = PLACE_BLOCK_FACE_OFFSETS.get(face)
+        if face_offset is None:
             return False, {
                 "error": "invalid_face",
                 "provided_face": face,
             }
+        face_vector = Vec3(*face_offset)
 
         held_item = getattr(self.bot, "heldItem", None)
         held_item_info = self.serialize_item(held_item)
