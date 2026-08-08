@@ -8,7 +8,7 @@ The project currently combines:
 - A deterministic `TaskPlan` / `TaskProgress` layer for supported multi-step goals
 - A persistent `WorldState` for observed world objects
 - A separate `AgentState` for the agent's own state
-- A modular tool registry for movement, rotation, chat, targeting, digging, coordinate movement, block placement, self-state reporting, nearby-entity reporting, and hotbar control
+- A modular tool registry for movement, rotation, chat, targeting, digging, coordinate movement, block placement, self-state reporting, nearby-entity reporting, nearby-entity interaction, dropped-item pickup, and hotbar control
 
 ## Ecosystem & Companion Apps
 
@@ -36,6 +36,7 @@ On each step, the agent execution loop:
 |   |-- clients/                # Client interface and Minecraft implementation
 |   |   `-- minecraft/          # Mineflayer bridge and capability mixins
 |   |-- config/                 # Runtime settings and logging setup
+|   |-- helpers/                # Pure helper modules shared by runtime layers
 |   |-- llm/                    # Ollama client and safe JSON wrapper
 |   |-- planning/               # Deterministic planning and progress tracking
 |   |-- prompt/                 # Prompt builder and prompt sections
@@ -51,7 +52,7 @@ On each step, the agent execution loop:
 
 ## Current State
 
-The repository is currently at `v0.10.0` development state.
+The repository is currently at `v0.11.0` development state.
 
 Main completed pieces:
 - `WorldState` stores observed world objects across steps
@@ -67,6 +68,11 @@ Main completed pieces:
 - The agent can deterministically walk to explicit coordinates through `move_to_coordinates`
 - The agent can deterministically place the currently held block through `place_block_at_cursor`
 - The agent can deterministically answer a range of nearby-entity questions through `report_nearby_entities`
+- The agent can deterministically target and approach nearby entities through `target_nearest_entity` and `move_to_nearest_entity`
+- The agent can perform first basic entity actions:
+  - attack a nearest observed living entity through `attack_nearest_entity`
+  - pick up a nearest observed dropped item through `pickup_nearest_item`, with inventory delta verification
+  - right-click interact with a nearest observed entity or vehicle through `interact_with_nearest_entity`
 - The planner supports short physical action combinations such as equip-and-place for known block names
 - Deterministic planned execution no longer lets the LLM rewrite `use_tool` task arguments
 - Remember/report and dig/report flows are now executed through a stronger deterministic controller path
@@ -75,19 +81,21 @@ Main completed pieces:
   - what nearby entities are currently observed
   - what the agent has or holds
   - what the deterministic task layer says is already done
-- The deterministic planner supports a small set of known multi-step patterns, self-state questions, and nearby-entity questions
+- The deterministic planner supports a small set of known multi-step patterns, self-state questions, nearby-entity questions, and basic entity-action commands
 
 Still intentionally limited:
 - Inventory interaction is currently limited to hotbar selection and holding an item already present in hotbar
 - Block placement currently covers single local placement from the main hand onto the block under cursor
 - Navigation currently covers explicit coordinate walking, not general long-range autonomous travel
-- Entity support currently covers perception and reporting, not combat, trading, feeding, or other direct interactions
+- Entity support currently covers basic targeting, approach, attack, pickup, and generic right-click interaction, not rich entity-specific behavior
+- Generic entity interaction only confirms that `activateEntity` was called; it does not verify successful trading, mounting, feeding, milking, or other scenario-specific outcomes
 - There is still no item transfer between arbitrary slots, chest handling, crafting, armor flow, or offhand automation
 - The planner is deliberately narrow and is not meant to be a general-purpose planner yet
 
 ## Core Milestones
 
-- **`v0.10.0` (Current)**: Added the first entity perception layer through structured nearby-entity observation and deterministic nearby-entity reporting
+- **`v0.11.0` (Current)**: Added the first entity interaction layer through deterministic entity targeting, approach, attack, dropped-item pickup, and generic right-click interaction
+- `v0.10.0`: Added the first entity perception layer through structured nearby-entity observation and deterministic nearby-entity reporting
 - `v0.9.0`: Added the first broader physical action layer through deterministic coordinate movement and validated block placement
 - `v0.8.0`: Turned inventory from passive knowledge into a first actionable layer through deterministic hotbar control and planned inventory execution
 - `v0.7.0`: Introduced the self-state layer through `AgentState`, extended observations with inventory data, and taught the agent to reason about itself separately from the world
@@ -138,6 +146,10 @@ Important settings include:
 - `MINECRAFT_USERNAME`
 - `DEBUG_STREAM_ENABLED`
 - `OBSERVED_BLOCK_NAMES`
+- `OBSERVED_ENTITY_RADIUS`
+- `DEFAULT_ENTITY_ATTACK_RANGE`
+- `DEFAULT_ENTITY_INTERACTION_RANGE`
+- `PICKUP_CONFIRMATION_TIMEOUT_SECONDS`
 
 By default, the client connects with:
 - Host: `localhost`
@@ -172,6 +184,12 @@ Example prompts:
 - `Is there a cow nearby?`
 - `How many zombies are nearby?`
 - `What dropped items are on the ground nearby?`
+- `Target the nearest zombie`
+- `Approach the nearest cow`
+- `Attack the nearest zombie`
+- `Pick up the nearest oak_log`
+- `Interact with the nearest villager`
+- `Sit in the nearest boat`
 
 ## Current Development Notes
 
@@ -183,6 +201,9 @@ Example prompts:
 - Inventory action scope: the current system covers hotbar-level equipping and local block placement, not full inventory manipulation
 - Entity semantics: nearby entities currently exist only in `observation["entities"]`; they are not persisted in `WorldState`
 - Entity answering scope: questions about mobs, villagers, dropped items, and vehicles nearby should be grounded in `observation["entities"]`
+- Entity targeting scope: entity actions select targets from the current observation, not from persistent memory
+- Entity interaction scope: `interact_with_nearest_entity` is a low-level right-click primitive; higher-level verified scenarios such as trading or mounting should be built as separate tools
+- Pickup semantics: dropped-item pickup is verified through inventory count changes, not only through movement to the item position
 - Placement semantics: `place_block_at_cursor` places onto the face of the block currently under cursor, rather than building with a higher-level spatial planner
 - Navigation semantics: `move_to_coordinates` is an explicit coordinate goal, not a full autonomous navigation policy
 - Step limit: the agent stops after `AGENT_MAX_STEPS`, configured in `omni/config/settings.py`
