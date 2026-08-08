@@ -478,6 +478,47 @@ def try_parse_attack_nearest_entity(goal: str) -> TaskPlan | None:
     )
 
 
+def _wants_pickup_nearest_item(goal: str) -> bool:
+    return _contains_phrase(
+        goal,
+        [
+            "подбери",
+            "подними",
+            "возьми с земли",
+            "подбери предмет",
+            "подбери ближайший предмет",
+            "pickup",
+            "pick up",
+            "collect",
+        ],
+    )
+
+
+def try_parse_pickup_nearest_item(goal: str) -> TaskPlan | None:
+    if not _wants_pickup_nearest_item(goal):
+        return None
+
+    target_name = resolve_object_name(goal)
+
+    arguments = {}
+    if target_name is not None:
+        arguments["target_name"] = target_name
+
+    return TaskPlan(
+        goal=goal,
+        steps=[
+            TaskStep(
+                id="pickup_nearest_item",
+                kind="use_tool",
+                args={
+                    "tool": "pickup_nearest_item",
+                    "arguments": arguments,
+                },
+            )
+        ],
+    )
+
+
 def try_parse_move_to_coordinates(goal: str) -> TaskPlan | None:
     if not wants_move_to_coordinates(goal):
         return None
@@ -849,6 +890,7 @@ def parse_task_plan(goal: str) -> TaskPlan:
         try_parse_move_to_coordinates,
         try_parse_select_and_place_block,
         try_parse_place_block_from_hand,
+        try_parse_pickup_nearest_item,
         try_parse_attack_nearest_entity,
         try_parse_move_to_nearest_entity,
         try_parse_target_nearest_entity,

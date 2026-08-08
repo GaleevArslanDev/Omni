@@ -190,6 +190,7 @@ Never call dig_block_at_cursor with expected_name different from the goal target
 If the user asks about the world around the agent, answer from observation and World State.
 If the user asks about the agent itself, answer from Agent State.
 If the user asks about nearby mobs, villagers, dropped items, or vehicles, answer from observation["entities"].
+If the user asks to pick up, collect, or take a dropped item from the ground, use pickup_nearest_item.
 If the user asks to attack or hit the nearest living entity, use attack_nearest_entity.
 If the user asks to approach or move to the nearest entity, use move_to_nearest_entity.
 If the user asks to target, select, or find the nearest entity, use target_nearest_entity.
